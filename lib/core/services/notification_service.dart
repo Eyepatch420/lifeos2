@@ -368,9 +368,9 @@ class NotificationService {
         '${e.badgeLabel} at ${_hhmm(TimeOfDay.fromDateTime(e.start))}'
         '${e.location.isEmpty ? '' : ' · ${e.location}'}',
         at,
-        _detailsFor(AlertType.alarm),
+        _detailsFor(e.alertType),
         payload: 'event:${e.id}',
-        exact: true,
+        exact: e.alertType != AlertType.notification,
       );
     }
 

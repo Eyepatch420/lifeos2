@@ -165,87 +165,102 @@ class _NotesScreenState extends State<NotesScreen> {
         if (ok) store.deleteNote(n.id);
         return false;
       },
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute<void>(
-              builder: (_) => NoteDetailScreen(noteId: n.id)),
+      // A rounded box cannot use a Border whose sides differ in colour —
+      // Flutter throws while painting and the card renders blank. The accent
+      // stripe is therefore drawn as its own element, not as a border side.
+      child: Material(
+        color: context.cardColor,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: context.hairline, width: 0.5),
         ),
-        onLongPress: () => _noteMenu(context, store, n),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border(
-              left: BorderSide(color: accent, width: 3),
-              top: BorderSide(color: context.hairline, width: 0.5),
-              right: BorderSide(color: context.hairline, width: 0.5),
-              bottom: BorderSide(color: context.hairline, width: 0.5),
-            ),
+        child: InkWell(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+                builder: (_) => NoteDetailScreen(noteId: n.id)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      n.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: context.txtPrimary,
-                      ),
+          onLongPress: () => _noteMenu(context, store, n),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Container(width: 3, color: accent),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                n.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.txtPrimary,
+                                ),
+                              ),
+                            ),
+                            if (n.pinned)
+                              Icon(Icons.push_pin,
+                                  size: 14, color: context.txtTertiary),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // PRD 6.4 AC1 — preview clamped to exactly 2 lines.
+                        Text(
+                          n.preview,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              height: 1.5,
+                              color: context.txtSecondary),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: <Widget>[
+                            Text(
+                              '${fmtShortDate.format(n.updatedAt)} · ${n.wordCount} words',
+                              style: TextStyle(
+                                  fontSize: 10.5, color: context.txtTertiary),
+                            ),
+                            StatusChip.tone(
+                                n.category.label,
+                                switch (n.category) {
+                                  NoteCategory.health => ChipTone.purple,
+                                  NoteCategory.finance => ChipTone.success,
+                                  NoteCategory.personal => ChipTone.info,
+                                  NoteCategory.work => ChipTone.warning,
+                                  NoteCategory.uncategorised =>
+                                    ChipTone.neutral,
+                                }),
+                            if (n.links.isNotEmpty)
+                              StatusChip.tone('Linked', ChipTone.info,
+                                  icon: Icons.link),
+                            if (n.actionItems.isNotEmpty)
+                              StatusChip.tone(
+                                '${n.actionItems.where((ChecklistItem i) => i.done).length}'
+                                '/${n.actionItems.length} actions',
+                                ChipTone.neutral,
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  if (n.pinned)
-                    Icon(Icons.push_pin, size: 14, color: context.txtTertiary),
-                ],
-              ),
-              const SizedBox(height: 4),
-              // PRD 6.4 AC1 — preview clamped to exactly 2 lines.
-              Text(
-                n.preview,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 11.5, height: 1.5, color: context.txtSecondary),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: <Widget>[
-                  Text(
-                    '${fmtShortDate.format(n.updatedAt)} · ${n.wordCount} words',
-                    style:
-                        TextStyle(fontSize: 10.5, color: context.txtTertiary),
-                  ),
-                  StatusChip.tone(
-                      n.category.label,
-                      switch (n.category) {
-                        NoteCategory.health => ChipTone.purple,
-                        NoteCategory.finance => ChipTone.success,
-                        NoteCategory.personal => ChipTone.info,
-                        NoteCategory.work => ChipTone.warning,
-                        NoteCategory.uncategorised => ChipTone.neutral,
-                      }),
-                  if (n.links.isNotEmpty)
-                    StatusChip.tone('Linked', ChipTone.info, icon: Icons.link),
-                  if (n.actionItems.isNotEmpty)
-                    StatusChip.tone(
-                      '${n.actionItems.where((ChecklistItem i) => i.done).length}'
-                      '/${n.actionItems.length} actions',
-                      ChipTone.neutral,
-                    ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

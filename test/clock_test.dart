@@ -146,7 +146,7 @@ void main() {
       expect(s.all.length, before);
     });
 
-    test('snooze pushes the alarm forward and wraps past midnight', () {
+    test('snooze delays the next ring without moving the alarm itself', () {
       final AlarmStore s = AlarmStore();
       final Alarm a = Alarm(
         id: 'sn',
@@ -154,9 +154,35 @@ void main() {
         snoozeMinutes: 10,
       );
       s.add(a);
+      final DateTime before = DateTime.now();
       s.snooze(a);
-      expect(a.time.hour, 0);
-      expect(a.time.minute, 5);
+
+      // The alarm's real schedule must survive — rewriting `time` here made
+      // every snooze drift the alarm permanently later, day after day.
+      expect(a.time.hour, 23);
+      expect(a.time.minute, 55);
+
+      // The next ring is pushed out by the snooze duration.
+      expect(a.snoozedUntil, isNotNull);
+      expect(
+        a.snoozedUntil!.difference(before).inMinutes,
+        closeTo(10, 1),
+      );
+      expect(a.nextOccurrence(before), a.snoozedUntil);
+    });
+
+    test('clearing a snooze restores the normal schedule', () {
+      final AlarmStore s = AlarmStore();
+      final Alarm a = Alarm(
+        id: 'sn2',
+        time: const TimeOfDay(hour: 7, minute: 0),
+        snoozeMinutes: 10,
+      );
+      s.add(a);
+      s.snooze(a);
+      s.clearSnooze(a);
+      expect(a.snoozedUntil, isNull);
+      expect(a.nextOccurrence(DateTime.now()).hour, 7);
     });
 
     test('toggle flips the enabled flag', () {

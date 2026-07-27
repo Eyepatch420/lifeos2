@@ -562,9 +562,25 @@ class _PlannerScreenState extends State<PlannerScreen> {
     final List<Habit> habits = planner.habitsFor(_selected);
     final bool isToday = isSameDay(_selected, _now);
 
-    // Build one entry per hour from 6 AM to 10 PM.
-    const int startHour = 6;
-    const int endHour = 22;
+    // Default window is 6 AM–10 PM, but it expands so an early or late item
+    // is never invisible here while showing up in the other views.
+    int startHour = 6;
+    int endHour = 22;
+    for (final PlannerEvent e in events) {
+      if (e.start.hour < startHour) startHour = e.start.hour;
+      if (e.end.hour > endHour) endHour = e.end.hour;
+    }
+    for (final Habit h in habits) {
+      final TimeOfDay? t = h.preferredTime;
+      if (t == null) continue;
+      if (t.hour < startHour) startHour = t.hour;
+      if (t.hour > endHour) endHour = t.hour;
+    }
+    if (isToday) {
+      if (_now.hour < startHour) startHour = _now.hour;
+      if (_now.hour > endHour) endHour = _now.hour;
+    }
+    endHour = endHour.clamp(startHour, 23);
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
@@ -663,6 +679,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                                   HabitStreakDetailScreen(habitId: h.id),
                             ),
                           ),
+                          onLongPress: () => _habitMenu(context, planner, h),
                         ),
                       for (final PlannerEvent e in hourEvents)
                         _timelineBlock(
@@ -674,6 +691,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                               '${e.location.isEmpty ? '' : ' · ${e.location}'}',
                           onTap: () => AddPlannerItemSheet.show(context,
                               existingEvent: e),
+                          onLongPress: () => _eventMenu(context, planner, e),
                         ),
                       if (hourEvents.isEmpty && hourHabits.isEmpty && !showNow)
                         Padding(
@@ -701,42 +719,56 @@ class _PlannerScreenState extends State<PlannerScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    VoidCallback? onLongPress,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(9),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: const BorderRadius.horizontal(
-                right: Radius.circular(9), left: Radius.zero),
-            border: Border(
-              left: BorderSide(color: color, width: 3),
-              top: BorderSide(color: context.hairline, width: 0.5),
-              right: BorderSide(color: context.hairline, width: 0.5),
-              bottom: BorderSide(color: context.hairline, width: 0.5),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: context.txtPrimary,
+      // A rounded box cannot use a Border whose sides differ in colour —
+      // Flutter throws while painting and the block renders blank. The accent
+      // stripe is therefore drawn as its own element, not as a border side.
+      child: Material(
+        color: context.cardColor,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(9),
+          side: BorderSide(color: context.hairline, width: 0.5),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Container(width: 3, color: color),
+                Expanded(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: context.txtPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                              fontSize: 11.5, color: context.txtSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 1),
-              Text(
-                subtitle,
-                style: TextStyle(fontSize: 11.5, color: context.txtSecondary),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

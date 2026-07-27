@@ -14,6 +14,7 @@ class Habit {
     this.iconCodePoint = 0xe1d5,
     this.goalStreak,
     this.note = '',
+    this.startedOn,
     Map<DateTime, CompletionStatus>? completions,
   }) : completions = completions ?? <DateTime, CompletionStatus>{};
 
@@ -31,6 +32,9 @@ class Habit {
   /// Optional target streak set via "Set goal" (PRD 3.3).
   int? goalStreak;
   String note;
+
+  /// Anchors a monthly habit to its day-of-month.
+  DateTime? startedOn;
   final Map<DateTime, CompletionStatus> completions;
 
   Color get color => Color(colorValue);
@@ -50,6 +54,7 @@ class Habit {
         'iconCodePoint': iconCodePoint,
         'goalStreak': goalStreak,
         'note': note,
+        'startedOn': startedOn?.toIso8601String(),
         'completions': completions.map((DateTime k, CompletionStatus v) =>
             MapEntry<String, int>(k.toIso8601String(), v.index)),
       };
@@ -70,6 +75,9 @@ class Habit {
       iconCodePoint: j['iconCodePoint'] as int? ?? 0xe1d5,
       goalStreak: j['goalStreak'] as int?,
       note: j['note'] as String? ?? '',
+      startedOn: j['startedOn'] == null
+          ? null
+          : DateTime.parse(j['startedOn'] as String),
       completions: (j['completions'] as Map<String, dynamic>? ?? <String, dynamic>{})
           .map((String k, dynamic v) => MapEntry<DateTime, CompletionStatus>(
               DateTime.parse(k), CompletionStatus.values[v as int])),
@@ -85,9 +93,13 @@ class Habit {
       case RepeatPattern.specificDays:
         return days.contains(date.weekday);
       case RepeatPattern.weekly:
-        return date.weekday == DateTime.monday;
+        // Once a week on the chosen day; Monday only as a last-resort default.
+        return date.weekday == (days.isEmpty ? DateTime.monday : days.first);
       case RepeatPattern.monthly:
-        return date.day == 1;
+        // Same day-of-month the habit started on, clamped for short months.
+        final int target = startedOn?.day ?? 1;
+        final int lastDay = DateTime(date.year, date.month + 1, 0).day;
+        return date.day == (target > lastDay ? lastDay : target);
       case RepeatPattern.everyXHours:
       case RepeatPattern.sos:
         return true;
@@ -108,6 +120,7 @@ class PlannerEvent {
     this.colorValue = 0xFF534AB7,
     this.done = false,
     this.reminderLeadMinutes,
+    this.alertType = AlertType.alarm,
   });
 
   final String id;
@@ -123,6 +136,9 @@ class PlannerEvent {
   bool done;
   int? reminderLeadMinutes;
 
+  /// How the pre-event alert presents itself (PRD 2.3 tiers, shared).
+  AlertType alertType;
+
   Color get color => Color(colorValue);
   DateTime get end => start.add(Duration(minutes: durationMinutes));
 
@@ -137,6 +153,7 @@ class PlannerEvent {
         'colorValue': colorValue,
         'done': done,
         'reminderLeadMinutes': reminderLeadMinutes,
+        'alertType': alertType.index,
       };
 
   factory PlannerEvent.fromJson(Map<String, dynamic> j) => PlannerEvent(
@@ -150,6 +167,7 @@ class PlannerEvent {
         colorValue: j['colorValue'] as int? ?? 0xFF534AB7,
         done: j['done'] as bool? ?? false,
         reminderLeadMinutes: j['reminderLeadMinutes'] as int?,
+        alertType: AlertType.values[j['alertType'] as int? ?? 1],
       );
 
   String get badgeLabel => switch (type) {

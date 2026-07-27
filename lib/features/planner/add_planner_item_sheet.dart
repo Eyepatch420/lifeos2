@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
+import '../../core/widgets/alert_type_selector.dart';
 import '../../core/widgets/common.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/habit.dart';
@@ -72,6 +73,7 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
   TimeOfDay _startTime = const TimeOfDay(hour: 10, minute: 0);
   int _eventDuration = 60;
   int? _reminderLeadMinutes = 30;
+  AlertType _alert = AlertType.alarm;
 
   bool get _isEdit =>
       widget.existingHabit != null || widget.existingEvent != null;
@@ -109,6 +111,7 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
       _eventDuration = e.durationMinutes;
       _colorValue = e.colorValue;
       _reminderLeadMinutes = e.reminderLeadMinutes;
+      _alert = e.alertType;
     }
   }
 
@@ -155,6 +158,8 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
         iconCodePoint: _iconCode,
         goalStreak: _goalStreak,
         note: _note.text.trim(),
+        // Anchors a monthly habit to its day-of-month.
+        startedOn: widget.existingHabit?.startedOn ?? _date,
         completions: widget.existingHabit?.completions,
       );
       if (widget.existingHabit != null) {
@@ -175,6 +180,7 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
         colorValue: _colorValue,
         done: widget.existingEvent?.done ?? false,
         reminderLeadMinutes: _reminderLeadMinutes,
+        alertType: _alert,
       );
       if (widget.existingEvent != null) {
         store.updateEvent(e);
@@ -461,6 +467,12 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
           ],
         ),
       ),
+      // The alert tier was previously hardcoded to Alarm for every event.
+      if (_reminderLeadMinutes != null)
+        AlertTypeSelector(
+          value: _alert,
+          onChanged: (AlertType t) => setState(() => _alert = t),
+        ),
     ];
   }
 
