@@ -261,6 +261,20 @@ class ExpenseStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Removes a category and re-homes its transactions so no spend is orphaned
+  /// or silently dropped from totals. The last category is the safety net and
+  /// can never be deleted.
+  void deleteCategory(String id) {
+    if (_categories.length <= 1) return;
+    final String fallback =
+        _categories.lastWhere((BudgetCategory c) => c.id != id).id;
+    for (final ExpenseTransaction t in _txns) {
+      if (t.categoryId == id) t.categoryId = fallback;
+    }
+    _categories.removeWhere((BudgetCategory c) => c.id == id);
+    notifyListeners();
+  }
+
   void delete(String id) {
     _txns.removeWhere((ExpenseTransaction t) => t.id == id);
     notifyListeners();

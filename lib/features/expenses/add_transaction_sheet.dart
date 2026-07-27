@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/attachment_service.dart';
+import '../../core/services/ocr_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -44,6 +46,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
   int _splitWays = 1;
   final List<String> _tags = <String>[];
   bool _receiptScanned = false;
+  String? _receiptPath;
   bool _submitted = false;
   bool _showAllCategories = false;
 
@@ -63,6 +66,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       _date = e.date;
       _splitWays = e.splitWays;
       _tags.addAll(e.tags);
+      _receiptPath = e.receiptPath;
+      _receiptScanned = e.receiptPath != null;
       _account.text = e.transferToAccount ?? '';
       _recurringCycle = e.recurringCycle ?? BillingCycle.monthly;
     }
@@ -125,6 +130,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       tags: List<String>.from(_tags),
       note: _note.text.trim(),
       splitWays: _splitWays,
+      // The scanned image was previously discarded on save.
+      receiptPath: _receiptPath ?? widget.existing?.receiptPath,
       transferToAccount:
           _type == TransactionType.transfer ? _account.text.trim() : null,
       recurringCycle:
@@ -477,38 +484,64 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     );
   }
 
-  /// PRD 4.4 AC3 — OCR pre-fills, and every pre-filled field stays editable.
+  /// PRD 4.4 AC3 — real on-device OCR pre-fills, and every pre-filled field
+  /// stays editable. Nothing leaves the device.
   Future<void> _scanReceipt() async {
-    final bool? go = await showDialog<bool>(
+    final bool? fromCamera = await showModalBottomSheet<bool>(
       context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Scan receipt'),
-        content: const Text(
-          'The camera scanner reads the amount, merchant and date from a '
-          'receipt and pre-fills them here. You can edit every field before '
-          'saving.\n\nThis demo fills sample values.',
-          style: TextStyle(fontSize: 13.5, height: 1.5),
+      builder: (BuildContext c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: Text(
+                'Scan a receipt to fill in the amount and merchant. '
+                'You can edit everything before saving.',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(c, true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from photos'),
+              onTap: () => Navigator.pop(c, false),
+            ),
+          ],
         ),
-        actions: <Widget>[
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Scan')),
-        ],
       ),
     );
-    if (go != true) return;
+    if (fromCamera == null) return;
+
+    final String? path =
+        await AttachmentService.pickImage(fromCamera: fromCamera);
+    if (path == null || !mounted) return;
+
+    final String text = await OcrService.readText(path);
+    if (!mounted) return;
+
+    final double? amount = OcrService.parseAmount(text);
+    final String? merchant = OcrService.parseMerchant(text);
+
     setState(() {
       _receiptScanned = true;
-      if (_amount.text.trim().isEmpty) _amount.text = '380.00';
-      if (_desc.text.trim().isEmpty) _desc.text = 'Starbucks';
-      _method = PaymentMethod.card;
+      _receiptPath = path;
+      if (amount != null) _amount.text = amount.toStringAsFixed(2);
+      if (merchant != null && _desc.text.trim().isEmpty) {
+        _desc.text = merchant;
+      }
     });
-    if (mounted) {
-      showSnack(context, 'Scanned — check the values before saving');
-    }
+
+    showSnack(
+      context,
+      amount == null
+          ? 'Receipt attached, but no amount was found — enter it manually'
+          : 'Scanned ₹${amount.toStringAsFixed(2)} — check before saving',
+    );
   }
 
   Future<void> _promptSplit() async {

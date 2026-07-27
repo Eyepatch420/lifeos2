@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -500,6 +501,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     return InkWell(
       onTap: () => _editLimit(context, store, c),
+      onLongPress: () => _categoryMenu(context, store, c),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
@@ -797,7 +799,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         OutlinedButton.icon(
           onPressed: () => _export(store),
           icon: const Icon(Icons.file_download_outlined, size: 18),
-          label: const Text('Export CSV / PDF'),
+          label: const Text('Export CSV'),
         ),
       ],
     );
@@ -842,11 +844,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           TextButton(
               onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              showSnack(context, 'Exported $rows transactions');
+              // Writes a real file and hands it to the system share sheet.
+              final String name =
+                  'lifeos-expenses-${fmtMonthKey.format(store.selectedMonth)}.csv';
+              try {
+                await ShareService.shareAsFile(csv, name,
+                    subject: 'LifeOS expenses');
+              } catch (e) {
+                if (context.mounted) {
+                  showSnack(context, 'Could not export: $e');
+                }
+              }
             },
-            child: const Text('Save file'),
+            child: const Text('Export file'),
           ),
         ],
       ),
@@ -881,38 +893,183 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         c.id, parsed == null || parsed <= 0 ? null : (parsed * 100).round());
   }
 
-  Future<void> _addCategory(BuildContext context, ExpenseStore store) async {
-    final TextEditingController name = TextEditingController();
-    final TextEditingController limit = TextEditingController();
-    final bool? ok = await showDialog<bool>(
+  /// Icons offered when creating a category — previously every new category
+  /// silently got the same generic one.
+  static const List<IconData> _categoryIcons = <IconData>[
+    Icons.category_outlined,
+    Icons.home_outlined,
+    Icons.restaurant_outlined,
+    Icons.local_hospital_outlined,
+    Icons.directions_car_outlined,
+    Icons.shopping_bag_outlined,
+    Icons.school_outlined,
+    Icons.flight_outlined,
+    Icons.pets_outlined,
+    Icons.sports_esports_outlined,
+    Icons.bolt_outlined,
+    Icons.card_giftcard_outlined,
+  ];
+
+  /// Long-press a budget row to edit its limit or remove the category.
+  Future<void> _categoryMenu(
+      BuildContext context, ExpenseStore store, BudgetCategory c) async {
+    final int used = store.allTransactions
+        .where((ExpenseTransaction t) => t.categoryId == c.id)
+        .length;
+
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('New budget category'),
-        content: Column(
+      builder: (BuildContext sheet) => SafeArea(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Category name'),
-              textCapitalization: TextCapitalization.sentences,
+            ListTile(
+              leading: IconTile(icon: c.icon, color: c.color, size: 32),
+              title: Text(c.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                  '$used transaction${used == 1 ? '' : 's'} in this category'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: limit,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                  labelText: 'Monthly limit', prefixText: '₹ '),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edit budget limit'),
+              onTap: () {
+                Navigator.pop(sheet);
+                _editLimit(context, store, c);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline,
+                  color: AppColors.dangerBright),
+              title: const Text('Delete category'),
+              subtitle: used == 0
+                  ? null
+                  : Text('$used transaction${used == 1 ? '' : 's'} '
+                      'will move to another category'),
+              onTap: () async {
+                Navigator.pop(sheet);
+                final bool ok = await confirmDialog(
+                  context,
+                  title: 'Delete "${c.name}"?',
+                  message: used == 0
+                      ? 'This category has no transactions.'
+                      : 'Its $used transaction${used == 1 ? '' : 's'} will be '
+                          'reassigned so no spending is lost.',
+                );
+                if (!ok) return;
+                store.deleteCategory(c.id);
+                if (context.mounted) {
+                  showSnack(context, '${c.name} deleted');
+                }
+              },
             ),
           ],
         ),
-        actions: <Widget>[
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Add')),
-        ],
+      ),
+    );
+  }
+
+  Future<void> _addCategory(BuildContext context, ExpenseStore store) async {
+    final TextEditingController name = TextEditingController();
+    final TextEditingController limit = TextEditingController();
+    int icon = _categoryIcons.first.codePoint;
+    int colour = AppColors
+        .picker[store.categories.length % AppColors.picker.length]
+        .toARGB32();
+
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => StatefulBuilder(
+        builder: (BuildContext ctx, StateSetter setLocal) => AlertDialog(
+          title: const Text('New budget category'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Category name'),
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: limit,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: 'Monthly limit', prefixText: '₹ '),
+                ),
+                const SizedBox(height: 16),
+                const Text('Icon', style: TextStyle(fontSize: 12.5)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: <Widget>[
+                    for (final IconData i in _categoryIcons)
+                      InkWell(
+                        onTap: () => setLocal(() => icon = i.codePoint),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: icon == i.codePoint
+                                ? Color(colour).withValues(alpha: 0.16)
+                                : ctx.fieldColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: icon == i.codePoint
+                                  ? Color(colour)
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Icon(i, size: 19, color: Color(colour)),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('Colour', style: TextStyle(fontSize: 12.5)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: <Widget>[
+                    for (final Color c in AppColors.picker)
+                      InkWell(
+                        onTap: () => setLocal(() => colour = c.toARGB32()),
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colour == c.toARGB32()
+                                  ? ctx.txtPrimary
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Add')),
+          ],
+        ),
       ),
     );
     if (ok != true || name.text.trim().isEmpty) return;
@@ -920,10 +1077,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     store.addCategory(BudgetCategory(
       id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
       name: name.text.trim(),
-      colorValue: AppColors
-          .picker[store.categories.length % AppColors.picker.length]
-          .toARGB32(),
-      iconCodePoint: Icons.category_outlined.codePoint,
+      colorValue: colour,
+      iconCodePoint: icon,
       limitPaise: lim == null || lim <= 0 ? null : (lim * 100).round(),
     ));
   }

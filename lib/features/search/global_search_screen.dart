@@ -18,7 +18,9 @@ import '../../data/stores/health_store.dart';
 import '../../data/stores/lists_notes_store.dart';
 import '../../data/stores/planner_store.dart';
 import '../../data/stores/reminder_store.dart';
+import '../bills/bills_screen.dart';
 import '../documents/document_vault_screen.dart';
+import '../expenses/expenses_screen.dart';
 import '../health/report_detail_screen.dart';
 import '../lists_notes/list_detail_screen.dart';
 import '../lists_notes/note_detail_screen.dart';
@@ -124,7 +126,14 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Expenses',
           icon: c.icon,
           color: c.color,
-          onOpen: () => showSnack(context, 'Opening ${t.description}'),
+          onOpen: () {
+            // Land on the month the transaction belongs to, not "today".
+            context.read<ExpenseStore>().setMonth(t.date);
+            Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const ExpensesScreen()),
+            );
+          },
         ));
       }
     }
@@ -216,7 +225,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Bills',
           icon: Icons.receipt_long_outlined,
           color: AppColors.bills,
-          onOpen: () => showSnack(context, 'Opening ${b.name}'),
+          onOpen: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(builder: (_) => const BillsScreen()),
+          ),
         ));
       }
     }

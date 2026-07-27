@@ -26,6 +26,9 @@ String greetingFor(DateTime now) {
 final DateFormat fmtLongDate = DateFormat('EEEE, d MMMM yyyy');
 final DateFormat fmtShortDate = DateFormat('d MMM');
 final DateFormat fmtMonthYear = DateFormat('MMMM yyyy');
+
+/// Filename-safe month stamp, e.g. "2026-07".
+final DateFormat fmtMonthKey = DateFormat('yyyy-MM');
 final DateFormat fmtMonthShort = DateFormat('MMM');
 final DateFormat fmtTime = DateFormat('h:mm a');
 final DateFormat fmtDayNum = DateFormat('d');
