@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
+import '../expenses/expenses_screen.dart';
+import '../health/health_screen.dart';
+import '../planner/planner_screen.dart';
+import '../reminders/reminders_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
@@ -66,10 +71,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                     icon: Icons.link,
                     title: 'Linked to ${list.linkedModule} module',
                     text: list.linkedLabel ?? '',
-                    onTap: () => showSnack(
-                      context,
-                      'Opening ${list.linkedLabel ?? list.linkedModule!}…',
-                    ),
+                    onTap: () => _openLinkedModule(context, list),
                   ),
                 ],
                 const SizedBox(height: 10),
@@ -122,8 +124,9 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
                   IconButton(
                     tooltip: 'Share',
                     icon: const Icon(Icons.ios_share, color: Colors.white),
-                    onPressed: () =>
-                        showSnack(context, '${list.name} copied to clipboard'),
+                    onPressed: () => ShareService.shareText(
+                        store.listAsPlainText(list),
+                        subject: list.name),
                   ),
                   IconButton(
                     tooltip: 'Edit list',
@@ -378,11 +381,34 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
         ],
       ),
     );
-    if (ok != true || text.text.trim().isEmpty) return;
-    setState(() {
-      item.text = text.text.trim();
-      item.note = note.text.trim();
-    });
+    if (ok != true || text.text.trim().isEmpty || !mounted) return;
+    // Goes through the store so every other screen watching it rebuilds —
+    // mutating the item directly left the rest of the app stale.
+    context.read<ListsNotesStore>().updateItem(
+          item,
+          text: text.text.trim(),
+          note: note.text.trim(),
+        );
+  }
+
+  /// PRD G.4 — the cross-module link badge actually navigates.
+  void _openLinkedModule(BuildContext context, TaskList list) {
+    switch (list.linkedModule) {
+      case 'Health':
+        Navigator.push(context,
+            MaterialPageRoute<void>(builder: (_) => const HealthScreen()));
+      case 'Planner':
+        Navigator.push(context,
+            MaterialPageRoute<void>(builder: (_) => const PlannerScreen()));
+      case 'Expenses':
+        Navigator.push(context,
+            MaterialPageRoute<void>(builder: (_) => const ExpensesScreen()));
+      case 'Reminders':
+        Navigator.push(context,
+            MaterialPageRoute<void>(builder: (_) => const RemindersScreen()));
+      default:
+        showSnack(context, 'No screen linked yet');
+    }
   }
 
   Future<void> _addSection(

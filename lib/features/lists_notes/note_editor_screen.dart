@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/attachment_service.dart';
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
@@ -25,6 +27,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late NoteCategory _category;
   final List<ChecklistItem> _actions = <ChecklistItem>[];
   final List<NoteLink> _links = <NoteLink>[];
+  final List<String> _attachments = <String>[];
   bool _dirty = false;
 
   bool get _isEdit => widget.existing != null;
@@ -39,6 +42,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       _body.text = e.body;
       _actions.addAll(e.actionItems);
       _links.addAll(e.links);
+      _attachments.addAll(e.attachmentPaths);
     }
     _title.addListener(_markDirty);
     _body.addListener(_markDirty);
@@ -90,7 +94,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         ..actionItems.clear()
         ..actionItems.addAll(_actions)
         ..links.clear()
-        ..links.addAll(_links);
+        ..links.addAll(_links)
+        ..attachmentPaths.clear()
+        ..attachmentPaths.addAll(_attachments);
       store.updateNote(n);
     } else {
       store.addNote(Note(
@@ -101,10 +107,51 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         category: _category,
         actionItems: List<ChecklistItem>.from(_actions),
         links: List<NoteLink>.from(_links),
+        attachmentPaths: List<String>.from(_attachments),
       ));
     }
     Navigator.pop(context);
     showSnack(context, _isEdit ? 'Note updated' : 'Note saved');
+  }
+
+  /// Real photo attachment, copied into app storage (PRD 6.6).
+  Future<void> _attachPhoto() async {
+    final String? choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (BuildContext c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(c, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from photos'),
+              onTap: () => Navigator.pop(c, 'gallery'),
+            ),
+            if (_attachments.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.delete_outline,
+                    color: AppColors.dangerBright),
+                title: Text('Remove all ${_attachments.length}'),
+                onTap: () => Navigator.pop(c, 'clear'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+    if (choice == 'clear') {
+      setState(() => _attachments.clear());
+      return;
+    }
+    final String? path =
+        await AttachmentService.pickImage(fromCamera: choice == 'camera');
+    if (path == null || !mounted) return;
+    setState(() => _attachments.add(path));
   }
 
   /// Explicit save + a guard on back navigation, so nothing is lost silently.
@@ -219,7 +266,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                     minLines: 8,
                     textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(
-                        fontSize: 13.5, height: 1.65, color: context.txtPrimary),
+                        fontSize: 13.5,
+                        height: 1.65,
+                        color: context.txtPrimary),
                     decoration: const InputDecoration(
                       hintText: 'Start typing your note…',
                       border: InputBorder.none,
@@ -264,10 +313,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                           () => _prefixLine('1. ')),
                       _fmtButton(Icons.checklist, 'Checklist',
                           () => _prefixLine('[ ] ')),
-                      _fmtButton(Icons.title, 'Heading',
-                          () => _prefixLine('## ')),
-                      _fmtButton(Icons.format_quote, 'Quote',
-                          () => _prefixLine('> ')),
+                      _fmtButton(
+                          Icons.title, 'Heading', () => _prefixLine('## ')),
+                      _fmtButton(
+                          Icons.format_quote, 'Quote', () => _prefixLine('> ')),
                     ],
                   ),
                 ],
@@ -315,8 +364,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                       ChoicePill(
                         label: 'Link to appointment',
                         icon: Icons.link,
-                        selected: _links
-                            .any((NoteLink l) => l.module == 'Planner'),
+                        selected:
+                            _links.any((NoteLink l) => l.module == 'Planner'),
                         color: AppColors.notes,
                         onTap: () => _addLink('Planner', 'Appointment'),
                       ),
@@ -329,12 +378,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                         onTap: () => _addLink('Health', 'Lab report'),
                       ),
                       ChoicePill(
-                        label: 'Attach photo',
+                        label: _attachments.isEmpty
+                            ? 'Attach photo'
+                            : '${_attachments.length} photo'
+                                '${_attachments.length == 1 ? '' : 's'}',
                         icon: Icons.photo_camera_outlined,
-                        selected: false,
+                        selected: _attachments.isNotEmpty,
                         color: AppColors.notes,
-                        onTap: () =>
-                            showSnack(context, 'Photo attached to note'),
+                        onTap: _attachPhoto,
                       ),
                     ],
                   ),
@@ -389,16 +440,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                       TextButton.icon(
                         onPressed: _addAction,
                         icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add',
-                            style: TextStyle(fontSize: 12.5)),
+                        label:
+                            const Text('Add', style: TextStyle(fontSize: 12.5)),
                       ),
                     ],
                   ),
                   if (_actions.isEmpty)
                     Text(
                       'No action items yet',
-                      style: TextStyle(
-                          fontSize: 12.5, color: context.txtTertiary),
+                      style:
+                          TextStyle(fontSize: 12.5, color: context.txtTertiary),
                     ),
                   for (final ChecklistItem i in _actions)
                     Row(

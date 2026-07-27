@@ -185,6 +185,24 @@ class ListsNotesStore extends ChangeNotifier {
     return b.toString();
   }
 
+  /// Plain-text rendering of a list, for Copy / Share.
+  String listAsPlainText(TaskList l) {
+    final StringBuffer b = StringBuffer()
+      ..writeln(l.name)
+      ..writeln('');
+    for (final ListSection s in l.sections) {
+      if (s.name.isNotEmpty) {
+        b..writeln(s.name)..writeln('');
+      }
+      for (final ChecklistItem i in s.items) {
+        b.writeln('${i.done ? '[x]' : '[ ]'} ${i.text}');
+      }
+      b.writeln('');
+    }
+    b.writeln('${l.doneCount} of ${l.total} done');
+    return b.toString();
+  }
+
   // ---- seed -------------------------------------------------------------
 
   void _seed() {

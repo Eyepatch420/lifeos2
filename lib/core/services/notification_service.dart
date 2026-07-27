@@ -384,7 +384,8 @@ class NotificationService {
         a.label.isEmpty ? 'Alarm' : a.label,
         a.repeatLabel,
         at,
-        _detailsFor(a.alertType),
+        // A silent alarm still vibrates unless the user turned that off too.
+        _detailsFor(a.alertType, style: a.vibrate ? null : 'Silent'),
         payload: 'alarm:${a.id}',
         exact: true,
       );

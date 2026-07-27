@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
@@ -389,7 +390,8 @@ class _ListsScreenState extends State<ListsScreen> {
               title: const Text('Share list'),
               onTap: () {
                 Navigator.pop(ctx);
-                showSnack(context, '${l.name} copied to clipboard');
+                ShareService.shareText(store.listAsPlainText(l),
+                    subject: l.name);
               },
             ),
             ListTile(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../reminders/ringing_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/alert_type_selector.dart';
@@ -328,6 +329,25 @@ class _ClockScreenState extends State<ClockScreen> {
               onTap: () {
                 Navigator.pop(ctx);
                 _openAlarmSheet(context, existing: a);
+              },
+            ),
+            ListTile(
+              leading:
+                  const Icon(Icons.play_circle_outline, color: AppColors.clock),
+              title: const Text('Preview how it rings'),
+              onTap: () {
+                Navigator.pop(ctx);
+                RingingScreen.show(
+                  context,
+                  RingingScreen(
+                    title: a.label.isEmpty ? 'Alarm' : a.label,
+                    subtitle: '${formatTimeOfDay(a.time)} · ${a.repeatLabel}',
+                    payload: 'alarm:${a.id}',
+                    alertType: a.alertType,
+                    intervalMinutes: a.forceConfirmIntervalMinutes,
+                    snoozeMinutes: a.snoozeMinutes,
+                  ),
+                );
               },
             ),
             ListTile(

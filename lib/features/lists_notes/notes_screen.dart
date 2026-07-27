@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -303,8 +304,10 @@ class _NotesScreenState extends State<NotesScreen> {
             ListTile(
               leading: const Icon(Icons.copy_outlined),
               title: const Text('Copy text'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
+                await ShareService.copy(store.noteAsPlainText(n));
+                if (!context.mounted) return;
                 showSnack(context, 'Note copied to clipboard');
               },
             ),

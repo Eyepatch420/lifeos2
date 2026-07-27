@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -25,8 +28,8 @@ class NoteDetailScreen extends StatelessWidget {
 
     if (note == null) {
       return Scaffold(
-        appBar: AppBar(
-            backgroundColor: AppColors.notes, title: const Text('Note')),
+        appBar:
+            AppBar(backgroundColor: AppColors.notes, title: const Text('Note')),
         body: const EmptyState(
           icon: Icons.link_off,
           title: 'Note not found',
@@ -79,17 +82,19 @@ class NoteDetailScreen extends StatelessWidget {
                     Text(
                       '${fmtShortDate.format(note.updatedAt)} '
                       '${note.updatedAt.year} · ${fmtTime.format(note.updatedAt)}',
-                      style: TextStyle(
-                          fontSize: 10.5, color: context.txtTertiary),
+                      style:
+                          TextStyle(fontSize: 10.5, color: context.txtTertiary),
                     ),
                     const SizedBox(width: 8),
-                    StatusChip.tone(note.category.label, switch (note.category) {
-                      NoteCategory.health => ChipTone.purple,
-                      NoteCategory.finance => ChipTone.success,
-                      NoteCategory.personal => ChipTone.info,
-                      NoteCategory.work => ChipTone.warning,
-                      NoteCategory.uncategorised => ChipTone.neutral,
-                    }),
+                    StatusChip.tone(
+                        note.category.label,
+                        switch (note.category) {
+                          NoteCategory.health => ChipTone.purple,
+                          NoteCategory.finance => ChipTone.success,
+                          NoteCategory.personal => ChipTone.info,
+                          NoteCategory.work => ChipTone.warning,
+                          NoteCategory.uncategorised => ChipTone.neutral,
+                        }),
                   ],
                 ),
                 Divider(height: 20, color: context.hairline),
@@ -104,10 +109,48 @@ class NoteDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
+                  // The editor's formatting buttons insert markdown, so render
+                  // it here instead of showing the raw ** and ## characters.
+                  _NoteBody(body: note.body),
+                ],
+                if (note.attachmentPaths.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 16),
                   Text(
-                    note.body,
+                    'ATTACHMENTS',
                     style: TextStyle(
-                        fontSize: 13.5, height: 1.65, color: context.txtPrimary),
+                      fontSize: 10.5,
+                      letterSpacing: 0.6,
+                      fontWeight: FontWeight.w600,
+                      color: context.txtTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 92,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: note.attachmentPaths.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (BuildContext c, int i) {
+                        final String p = note.attachmentPaths[i];
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(p),
+                            width: 92,
+                            height: 92,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 92,
+                              height: 92,
+                              color: c.fieldColor,
+                              child: Icon(Icons.broken_image_outlined,
+                                  color: c.txtTertiary),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
                 // PRD 6.5 FR1 — action items are real data, not markdown text.
@@ -259,7 +302,10 @@ class NoteDetailScreen extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => showSnack(context, 'Note shared'),
+                  onPressed: () => ShareService.shareText(
+                    store.noteAsPlainText(note),
+                    subject: note.title,
+                  ),
                   icon: const Icon(Icons.ios_share, size: 16),
                   label: const Text('Share', style: TextStyle(fontSize: 12.5)),
                 ),
@@ -268,23 +314,32 @@ class NoteDetailScreen extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   // PRD 6.5 AC2 — copies the COMPLETE content incl. actions.
-                  onPressed: () {
-                    store.noteAsPlainText(note);
+                  onPressed: () async {
+                    await ShareService.copy(store.noteAsPlainText(note));
+                    if (!context.mounted) return;
                     showSnack(context,
                         'Full note (with action items) copied to clipboard');
                   },
                   icon: const Icon(Icons.copy_outlined, size: 16),
-                  label: const Text('Copy text',
-                      style: TextStyle(fontSize: 12.5)),
+                  label:
+                      const Text('Copy text', style: TextStyle(fontSize: 12.5)),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => showSnack(context, 'Exported as PDF'),
+                  onPressed: () async {
+                    final String safe = note.title
+                        .replaceAll(RegExp(r'[^A-Za-z0-9 _-]'), '')
+                        .trim();
+                    await ShareService.shareAsFile(
+                      store.noteAsPlainText(note),
+                      '${safe.isEmpty ? 'note' : safe}.txt',
+                      subject: note.title,
+                    );
+                  },
                   icon: const Icon(Icons.file_download_outlined, size: 16),
-                  label:
-                      const Text('Export', style: TextStyle(fontSize: 12.5)),
+                  label: const Text('Export', style: TextStyle(fontSize: 12.5)),
                 ),
               ),
             ],
@@ -311,5 +366,81 @@ class NoteDetailScreen extends StatelessWidget {
       return;
     }
     showSnack(context, 'Opening ${l.label}…');
+  }
+}
+
+/// Renders exactly the markup the editor's formatting buttons can produce:
+/// **bold**, _italic_, <u>underline</u>, "## " headings and "> " quotes.
+/// Anything else is shown verbatim, so no content is ever swallowed.
+class _NoteBody extends StatelessWidget {
+  const _NoteBody({required this.body});
+
+  final String body;
+
+  static final RegExp _inline = RegExp(r'\*\*(.+?)\*\*|_(.+?)_|<u>(.+?)</u>');
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle base =
+        TextStyle(fontSize: 13.5, height: 1.65, color: context.txtPrimary);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (final String line in body.split('\n'))
+          if (line.startsWith('## '))
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 2),
+              child: Text(
+                line.substring(3),
+                style:
+                    base.copyWith(fontSize: 15.5, fontWeight: FontWeight.w700),
+              ),
+            )
+          else if (line.startsWith('> '))
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.only(left: 10),
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: context.hairline, width: 3),
+                ),
+              ),
+              child: Text(
+                line.substring(2),
+                style: base.copyWith(
+                    fontStyle: FontStyle.italic, color: context.txtSecondary),
+              ),
+            )
+          else
+            RichText(text: TextSpan(style: base, children: _spans(line, base))),
+      ],
+    );
+  }
+
+  List<InlineSpan> _spans(String line, TextStyle base) {
+    final List<InlineSpan> out = <InlineSpan>[];
+    int cursor = 0;
+    for (final RegExpMatch m in _inline.allMatches(line)) {
+      if (m.start > cursor) {
+        out.add(TextSpan(text: line.substring(cursor, m.start)));
+      }
+      if (m.group(1) != null) {
+        out.add(TextSpan(
+            text: m.group(1),
+            style: base.copyWith(fontWeight: FontWeight.w700)));
+      } else if (m.group(2) != null) {
+        out.add(TextSpan(
+            text: m.group(2),
+            style: base.copyWith(fontStyle: FontStyle.italic)));
+      } else {
+        out.add(TextSpan(
+            text: m.group(3),
+            style: base.copyWith(decoration: TextDecoration.underline)));
+      }
+      cursor = m.end;
+    }
+    if (cursor < line.length) out.add(TextSpan(text: line.substring(cursor)));
+    return out;
   }
 }
