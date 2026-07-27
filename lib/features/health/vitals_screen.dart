@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -341,12 +342,16 @@ class VitalsScreen extends StatelessWidget {
                   onPressed: () => Navigator.pop(ctx),
                   child: const Text('Close')),
               FilledButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(ctx);
-                  showSnack(
-                      context, 'PDF exported for the last $selected days');
+                  // The summary was previously generated and then discarded.
+                  await ShareService.shareAsFile(
+                    text,
+                    'lifeos-health-summary-${selected}d.txt',
+                    subject: 'Health summary — last $selected days',
+                  );
                 },
-                child: const Text('Export PDF'),
+                child: const Text('Share report'),
               ),
             ],
           );

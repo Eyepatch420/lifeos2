@@ -211,6 +211,39 @@ class HealthStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateReport(LabReport r) {
+    final int i = _reports.indexWhere((LabReport x) => x.id == r.id);
+    if (i >= 0) _reports[i] = r;
+    notifyListeners();
+  }
+
+  void deleteReport(String id) {
+    _reports.removeWhere((LabReport r) => r.id == id);
+    notifyListeners();
+  }
+
+  /// PRD 5.2 AC3 — a mis-extracted value must be correctable in place.
+  void updateMarker(LabReport report, int index, LabMarker corrected) {
+    if (index < 0 || index >= report.markers.length) return;
+    report.markers[index] = corrected;
+    notifyListeners();
+  }
+
+  // ---- vitals editing ----------------------------------------------------
+
+  void deleteVital(VitalReading v) {
+    _vitals.remove(v);
+    notifyListeners();
+  }
+
+  void replaceVital(VitalReading old, VitalReading updated) {
+    final int i = _vitals.indexOf(old);
+    if (i >= 0) {
+      _vitals[i] = updated;
+      notifyListeners();
+    }
+  }
+
   /// Health-tracking adherence for the wellness composite (PRD 1.3).
   double trackingAdherence(DateTime now) {
     final DateTime monthStart = startOfMonth(now);

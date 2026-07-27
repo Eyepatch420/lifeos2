@@ -11,6 +11,7 @@ import '../../data/models/enums.dart';
 import '../../data/models/health.dart';
 import '../../data/stores/commitments_store.dart';
 import '../../data/stores/health_store.dart';
+import 'add_report_screen.dart';
 import '../documents/document_vault_screen.dart';
 import 'report_detail_screen.dart';
 import 'vitals_screen.dart';
@@ -248,7 +249,9 @@ class _HealthScreenState extends State<HealthScreen> {
         ),
         const SizedBox(height: 6),
         SizedBox(
-          height: 34,
+          // Tall enough for the tallest bar plus its month label — at 34 the
+          // label was clipped and Flutter drew an overflow stripe.
+          height: 46,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
@@ -257,6 +260,7 @@ class _HealthScreenState extends State<HealthScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: <Widget>[
                         Container(
@@ -474,65 +478,12 @@ class _HealthScreenState extends State<HealthScreen> {
     );
   }
 
+  /// Opens the real scan-and-review flow (PRD 5.1/5.2). Values come from
+  /// on-device OCR and are confirmed by the user before anything is stored.
   Future<void> _addReport() async {
-    final HealthStore store = context.read<HealthStore>();
-    final TextEditingController name = TextEditingController();
-    final TextEditingController lab = TextEditingController();
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Add lab report'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Text(
-              'Scan a report and LifeOS extracts its values automatically. '
-              'Extracted values stay editable — always verify with your doctor.',
-              style: TextStyle(fontSize: 12.5, height: 1.4),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Report name'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: lab,
-              decoration: const InputDecoration(labelText: 'Lab / source'),
-            ),
-          ],
-        ),
-        actions: <Widget>[
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Scan & add')),
-        ],
-      ),
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const AddReportScreen()),
     );
-    if (ok != true || name.text.trim().isEmpty) return;
-    store.addReport(LabReport(
-      id: 'rep_${DateTime.now().millisecondsSinceEpoch}',
-      name: name.text.trim(),
-      lab: lab.text.trim().isEmpty ? 'Unknown lab' : lab.text.trim(),
-      date: DateTime.now(),
-      markers: <LabMarker>[
-        LabMarker(
-            name: 'Haemoglobin',
-            value: 13.6,
-            unit: 'g/dL',
-            normalLow: 12,
-            normalHigh: 17),
-        LabMarker(
-            name: 'HbA1c',
-            value: 6.9,
-            unit: '%',
-            normalLow: 4,
-            normalHigh: 5.6),
-      ],
-    ));
-    if (mounted) showSnack(context, 'Report added — verify the values');
   }
 }

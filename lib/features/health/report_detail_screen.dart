@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -70,8 +71,9 @@ class ReportDetailScreen extends StatelessWidget {
                           tooltip: 'Share',
                           icon:
                               const Icon(Icons.ios_share, color: Colors.white),
-                          onPressed: () => showSnack(
-                              context, 'Report summary copied to clipboard'),
+                          onPressed: () => ShareService.shareText(
+                              _summaryText(report),
+                              subject: report.name),
                         ),
                       ],
                     ),
@@ -129,7 +131,7 @@ class ReportDetailScreen extends StatelessWidget {
                       for (int i = 0;
                           i < report.markers.length;
                           i++) ...<Widget>[
-                        _markerRow(context, health, report.markers[i]),
+                        _markerRow(context, health, report, i),
                         if (i != report.markers.length - 1)
                           Divider(height: 1, color: context.hairline),
                       ],
@@ -182,7 +184,9 @@ class ReportDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _markerRow(BuildContext context, HealthStore health, LabMarker m) {
+  Widget _markerRow(
+      BuildContext context, HealthStore health, LabReport report, int index) {
+    final LabMarker m = report.markers[index];
     final Color tone = switch (m.status) {
       MarkerStatus.normal => AppColors.success,
       MarkerStatus.borderline => AppColors.warning,
@@ -191,8 +195,8 @@ class ReportDetailScreen extends StatelessWidget {
 
     return InkWell(
       // PRD 5.2 AC3 — extracted values remain user-correctable.
-      onTap: () => showSnack(
-          context, 'Tap and hold a value to correct an extraction error'),
+      onTap: () => _correctMarker(context, health, report, index),
+      onLongPress: () => _correctMarker(context, health, report, index),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         child: Row(
@@ -329,4 +333,133 @@ class ReportDetailScreen extends StatelessWidget {
       ],
     );
   }
+
+  /// PRD 5.2 AC3 — fix a value the scanner read wrong. The report keeps its
+  /// "auto-extracted" flag so the disclaimer stays honest.
+  Future<void> _correctMarker(BuildContext context, HealthStore health,
+      LabReport report, int index) async {
+    final LabMarker m = report.markers[index];
+    final TextEditingController value =
+        TextEditingController(text: _trim(m.value));
+    final TextEditingController unit = TextEditingController(text: m.unit);
+    final TextEditingController low =
+        TextEditingController(text: _trim(m.normalLow));
+    final TextEditingController high =
+        TextEditingController(text: _trim(m.normalHigh));
+
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: Text(m.name),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                'Correct anything the scan read wrong.',
+                style: TextStyle(fontSize: 12.5),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: value,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      decoration: const InputDecoration(
+                          labelText: 'Value', isDense: true),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: unit,
+                      decoration: const InputDecoration(
+                          labelText: 'Unit', isDense: true),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: low,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      decoration: const InputDecoration(
+                          labelText: 'Normal from', isDense: true),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: high,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      decoration: const InputDecoration(
+                          labelText: 'Normal to', isDense: true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    final double? v = double.tryParse(value.text.trim());
+    if (v == null) {
+      if (context.mounted) showSnack(context, 'Enter a valid number');
+      return;
+    }
+    health.updateMarker(
+      report,
+      index,
+      LabMarker(
+        name: m.name,
+        value: v,
+        unit: unit.text.trim(),
+        normalLow: double.tryParse(low.text.trim()) ?? m.normalLow,
+        normalHigh: double.tryParse(high.text.trim()) ?? m.normalHigh,
+        borderlineTolerance: m.borderlineTolerance,
+      ),
+    );
+    if (context.mounted) showSnack(context, '${m.name} corrected');
+  }
+
+  /// Doctor-ready plain-text summary of this report.
+  String _summaryText(LabReport report) {
+    final StringBuffer b = StringBuffer()
+      ..writeln(report.name)
+      ..writeln('${report.lab} · ${fmtShortDate.format(report.date)} '
+          '${report.date.year}')
+      ..writeln('');
+    for (final LabMarker m in report.markers) {
+      b.writeln('${m.name}: ${_trim(m.value)} ${m.unit} '
+          '(${m.rangeLabel}) — ${m.status.label}');
+    }
+    b
+      ..writeln('')
+      ..writeln('Shared from LifeOS. Values are for reference only — '
+          'always confirm with your doctor.');
+    return b.toString();
+  }
+
+  static String _trim(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 }

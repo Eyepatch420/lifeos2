@@ -71,5 +71,43 @@ class OcrService {
     return out;
   }
 
+  /// Known reference ranges, so a scanned marker is classified correctly
+  /// instead of defaulting to an arbitrary range. Keys are lower-cased.
+  static const Map<String, (double, double, String)> referenceRanges =
+      <String, (double, double, String)>{
+    'haemoglobin': (12, 17, 'g/dL'),
+    'hemoglobin': (12, 17, 'g/dL'),
+    'platelets': (1.5, 4.5, 'L/uL'),
+    'wbc count': (4, 11, 'K/uL'),
+    'wbc': (4, 11, 'K/uL'),
+    'rbc count': (4.5, 5.5, 'M/uL'),
+    'rbc': (4.5, 5.5, 'M/uL'),
+    'hba1c': (4, 5.6, '%'),
+    'fasting glucose': (70, 100, 'mg/dL'),
+    'glucose': (70, 100, 'mg/dL'),
+    'total cholesterol': (0, 200, 'mg/dL'),
+    'cholesterol': (0, 200, 'mg/dL'),
+    'ldl': (0, 100, 'mg/dL'),
+    'hdl': (40, 60, 'mg/dL'),
+    'triglycerides': (0, 150, 'mg/dL'),
+    'creatinine': (0.6, 1.3, 'mg/dL'),
+    'urea': (7, 20, 'mg/dL'),
+    'tsh': (0.4, 4.0, 'mIU/L'),
+    'vitamin d': (30, 100, 'ng/mL'),
+    'vitamin b12': (200, 900, 'pg/mL'),
+  };
+
+  /// Best-known range for a marker name, or null when we don't recognise it
+  /// (the review form then asks the user for the range).
+  static (double, double, String)? rangeFor(String name) {
+    final String key = name.trim().toLowerCase();
+    if (referenceRanges.containsKey(key)) return referenceRanges[key];
+    for (final MapEntry<String, (double, double, String)> e
+        in referenceRanges.entries) {
+      if (key.contains(e.key)) return e.value;
+    }
+    return null;
+  }
+
   static Future<void> dispose() => _recognizer.close();
 }
