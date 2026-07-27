@@ -401,6 +401,16 @@ class _ReminderRow extends StatelessWidget {
                             StatusChip.tone('Missed', ChipTone.danger),
                           if (skipped)
                             StatusChip.tone('Skipped today', ChipTone.neutral),
+                          // Snooze only shifts the next alert, so say when it
+                          // will actually fire rather than changing the time.
+                          if (reminder.snoozedUntil != null &&
+                              reminder.snoozedUntil!.isAfter(DateTime.now()))
+                            StatusChip.tone(
+                              'Snoozed till '
+                              '${formatTimeOfDay(TimeOfDay.fromDateTime(reminder.snoozedUntil!))}',
+                              ChipTone.info,
+                              icon: Icons.snooze,
+                            ),
                         ],
                       ),
                     ],

@@ -80,11 +80,12 @@ class AlertsScreen extends StatelessWidget {
                       showSnack(context, '${b.name} marked paid');
                     },
                     secondaryLabel: 'Snooze',
-                    onSecondary: () => showSnack(
-                      context,
-                      'Snoozed for '
-                      '${context.read<SettingsStore>().defaultSnoozeMinutes} minutes',
-                    ),
+                    onSecondary: () {
+                      final int mins =
+                          context.read<SettingsStore>().defaultSnoozeMinutes;
+                      context.read<CommitmentsStore>().snoozeBill(b, mins);
+                      showSnack(context, 'Snoozed for $mins minutes');
+                    },
                     onOpen: () => Navigator.push(
                       context,
                       MaterialPageRoute<void>(
@@ -105,8 +106,12 @@ class AlertsScreen extends StatelessWidget {
                       showSnack(context, '${m.name} renewed');
                     },
                     secondaryLabel: 'Remind later',
-                    onSecondary: () =>
-                        showSnack(context, 'Will remind tomorrow'),
+                    onSecondary: () {
+                      context
+                          .read<CommitmentsStore>()
+                          .remindMembershipLater(m);
+                      showSnack(context, 'Will remind tomorrow');
+                    },
                     onOpen: () => Navigator.push(
                       context,
                       MaterialPageRoute<void>(
@@ -129,7 +134,12 @@ class AlertsScreen extends StatelessWidget {
                           builder: (_) => const DocumentVaultScreen()),
                     ),
                     secondaryLabel: 'Dismiss',
-                    onSecondary: () => showSnack(context, 'Dismissed'),
+                    onSecondary: () {
+                      context
+                          .read<CommitmentsStore>()
+                          .dismissDocumentAlert(d);
+                      showSnack(context, 'Dismissed for today');
+                    },
                     onOpen: () => Navigator.push(
                       context,
                       MaterialPageRoute<void>(

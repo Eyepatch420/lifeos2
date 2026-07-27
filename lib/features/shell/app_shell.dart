@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/alarm.dart';
+import '../../data/models/enums.dart';
+import '../../data/models/reminder.dart';
 import '../../data/stores/alarm_store.dart';
 import '../../data/stores/commitments_store.dart';
+import '../../data/stores/reminder_store.dart';
+import '../../data/stores/settings_store.dart';
+import '../memberships/membership_detail_screen.dart';
+import '../reminders/ringing_screen.dart';
 import '../bills/bills_screen.dart';
 import '../clock/clock_screen.dart';
 import '../documents/document_vault_screen.dart';
@@ -44,6 +52,90 @@ class _AppShellState extends State<AppShell> {
     ExpensesScreen(),
     MoreHubScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService.tapped.addListener(_handleNotificationTap);
+    // A tap that launched the app cold is already queued.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _handleNotificationTap());
+  }
+
+  @override
+  void dispose() {
+    NotificationService.tapped.removeListener(_handleNotificationTap);
+    super.dispose();
+  }
+
+  /// Routes a tapped notification to the thing it is about (PRD G.1).
+  void _handleNotificationTap() {
+    final NotificationRoute? route = NotificationService.tapped.value;
+    if (route == null || !mounted) return;
+    NotificationService.tapped.value = null;
+
+    switch (route.kind) {
+      case 'reminder':
+        final Reminder? r = context.read<ReminderStore>().byId(route.id);
+        if (r == null) return;
+        if (r.alertType == AlertType.forceConfirm) {
+          RingingScreen.show(
+            context,
+            RingingScreen(
+              title: r.title,
+              subtitle: r.subtitle.isEmpty ? 'Reminder' : r.subtitle,
+              payload: 'reminder:${r.id}',
+              intervalMinutes: r.forceConfirmIntervalMinutes,
+              snoozeMinutes:
+                  context.read<SettingsStore>().defaultSnoozeMinutes,
+              onConfirm: () => context
+                  .read<ReminderStore>()
+                  .markDone(r, DateTime.now()),
+              onSnooze: () => context.read<ReminderStore>().snooze(
+                  r, context.read<SettingsStore>().defaultSnoozeMinutes),
+            ),
+          );
+        } else {
+          setState(() => _index = 1);
+        }
+      case 'alarm':
+        final Alarm? a = context.read<AlarmStore>().byId(route.id);
+        if (a == null) return;
+        RingingScreen.show(
+          context,
+          RingingScreen(
+            title: a.label.isEmpty ? 'Alarm' : a.label,
+            subtitle: a.repeatLabel,
+            payload: 'alarm:${a.id}',
+            alertType: a.alertType,
+            intervalMinutes: a.forceConfirmIntervalMinutes,
+            snoozeMinutes: a.snoozeMinutes,
+            onConfirm: () {
+              final AlarmStore store = context.read<AlarmStore>();
+              store.clearSnooze(a);
+              if (!a.repeats) store.setEnabled(a, false);
+            },
+            onSnooze: () => context.read<AlarmStore>().snooze(a),
+          ),
+        );
+      case 'habit':
+      case 'event':
+        setState(() => _index = 2);
+      case 'bill':
+        Navigator.push(context,
+            MaterialPageRoute<void>(builder: (_) => const BillsScreen()));
+      case 'membership':
+        Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+                builder: (_) => MembershipDetailScreen(id: route.id)));
+      case 'document':
+        Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+                builder: (_) => const DocumentVaultScreen()));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

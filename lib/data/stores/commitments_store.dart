@@ -235,6 +235,26 @@ class CommitmentsStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---- alert suppression (Alerts screen secondary actions) ---------------
+
+  /// Hides an overdue bill's alert for [minutes] without marking it paid.
+  void snoozeBill(Bill b, int minutes) {
+    b.snoozedUntil = DateTime.now().add(Duration(minutes: minutes));
+    notifyListeners();
+  }
+
+  /// "Remind later" — suppresses the expiry alert until tomorrow.
+  void remindMembershipLater(Membership m, {int days = 1}) {
+    m.remindLaterUntil = DateTime.now().add(Duration(days: days));
+    notifyListeners();
+  }
+
+  /// "Dismiss" — suppresses a document expiry alert until tomorrow.
+  void dismissDocumentAlert(StoredDocument d, {int days = 1}) {
+    d.dismissedUntil = DateTime.now().add(Duration(days: days));
+    notifyListeners();
+  }
+
   // ---- seed -------------------------------------------------------------
 
   void _seed() {

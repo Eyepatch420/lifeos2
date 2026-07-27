@@ -24,6 +24,8 @@ class Reminder {
     this.prescriptionPath,
     this.costPaise,
     this.note = '',
+    this.notifStyle = 'Sound',
+    this.startedOn,
     Map<DateTime, CompletionStatus>? completions,
   }) : completions = completions ?? <DateTime, CompletionStatus>{};
 
@@ -55,6 +57,30 @@ class Reminder {
   /// Transient snooze target — the scheduler fires at this instead of [time]
   /// until it passes. Never rewrites [time] (snooze must not be destructive).
   DateTime? snoozedUntil;
+
+  /// 'Sound' | 'Vibrate' | 'Silent' — how the alert presents itself.
+  String notifStyle;
+
+  /// When the course began, so a fixed [duration] can expire it (PRD 2.2).
+  DateTime? startedOn;
+
+  /// A course like "7 days" stops applying once it has run its length.
+  /// "Ongoing" never expires.
+  bool hasExpired(DateTime now) {
+    final DateTime? from = startedOn;
+    if (from == null) return false;
+    final RegExpMatch? m =
+        RegExp(r'(\d+)\s*(day|week|month)', caseSensitive: false)
+            .firstMatch(duration);
+    if (m == null) return false;
+    final int n = int.parse(m.group(1)!);
+    final int days = switch (m.group(2)!.toLowerCase()) {
+      'week' => n * 7,
+      'month' => n * 30,
+      _ => n,
+    };
+    return now.difference(from).inDays >= days;
+  }
 
   /// Date-keyed completion log (date normalised to midnight).
   final Map<DateTime, CompletionStatus> completions;
@@ -112,6 +138,8 @@ class Reminder {
         'prescriptionPath': prescriptionPath,
         'costPaise': costPaise,
         'note': note,
+        'notifStyle': notifStyle,
+        'startedOn': startedOn?.toIso8601String(),
         'snoozedUntil': snoozedUntil?.toIso8601String(),
         'completions': completions.map((DateTime k, CompletionStatus v) =>
             MapEntry<String, int>(k.toIso8601String(), v.index)),
@@ -141,6 +169,10 @@ class Reminder {
       prescriptionPath: j['prescriptionPath'] as String?,
       costPaise: j['costPaise'] as int?,
       note: j['note'] as String? ?? '',
+      notifStyle: j['notifStyle'] as String? ?? 'Sound',
+      startedOn: j['startedOn'] == null
+          ? null
+          : DateTime.parse(j['startedOn'] as String),
       completions: (j['completions'] as Map<String, dynamic>? ?? <String, dynamic>{})
           .map((String k, dynamic v) => MapEntry<DateTime, CompletionStatus>(
               DateTime.parse(k), CompletionStatus.values[v as int])),
@@ -190,6 +222,8 @@ class Reminder {
       prescriptionPath: prescriptionPath,
       costPaise: costPaise,
       note: note ?? this.note,
+      notifStyle: notifStyle,
+      startedOn: startedOn,
       completions: completions,
     );
   }

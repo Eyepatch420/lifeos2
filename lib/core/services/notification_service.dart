@@ -86,13 +86,35 @@ class NotificationService {
     ],
   );
 
-  static NotificationDetails _detailsFor(AlertType t) => NotificationDetails(
-        android: switch (t) {
-          AlertType.notification => _silent,
-          AlertType.alarm => _alarm,
-          AlertType.forceConfirm => _force,
-        },
-      );
+  static NotificationDetails _detailsFor(AlertType t, {String? style}) {
+    final AndroidNotificationDetails base = switch (t) {
+      AlertType.notification => _silent,
+      AlertType.alarm => _alarm,
+      AlertType.forceConfirm => _force,
+    };
+    // 'Sound' | 'Vibrate' | 'Silent' from the add-reminder sheet.
+    if (style == null || style == 'Sound') {
+      return NotificationDetails(android: base);
+    }
+    final bool vibrate = style == 'Vibrate';
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        // Distinct channel per presentation — Android freezes these settings.
+        '${base.channelId}_${style.toLowerCase()}',
+        '${base.channelName} ($style)',
+        channelDescription: base.channelDescription,
+        importance: base.importance,
+        priority: base.priority,
+        category: base.category,
+        playSound: false,
+        enableVibration: vibrate,
+        fullScreenIntent: base.fullScreenIntent,
+        autoCancel: base.autoCancel,
+        ongoing: base.ongoing,
+        actions: base.actions,
+      ),
+    );
+  }
 
   static Future<void> init() async {
     tzdata.initializeTimeZones();
@@ -243,8 +265,11 @@ class NotificationService {
     // ---- reminders ------------------------------------------------------
     for (final Reminder r in reminders.all) {
       if (!r.enabled) continue;
+      // A fixed course ("7 days") stops firing once it has run its length.
+      if (r.hasExpired(DateTime.now())) continue;
       final bool exact = r.alertType != AlertType.notification;
-      final NotificationDetails details = _detailsFor(r.alertType);
+      final NotificationDetails details =
+          _detailsFor(r.alertType, style: r.notifStyle);
       final String body =
           r.subtitle.isEmpty ? 'Reminder from LifeOS' : r.subtitle;
       final String payload = 'reminder:${r.id}';

@@ -70,6 +70,16 @@ class ExpenseStore extends ChangeNotifier {
   List<BudgetCategory> get categories =>
       List<BudgetCategory>.unmodifiable(_categories);
 
+  /// Where medicine costs logged from a reminder land. Falls back to the last
+  /// category ("Other") if a health category was renamed away.
+  String get medicineCategoryId => _categories
+      .firstWhere(
+        (BudgetCategory c) =>
+            c.id == 'cat_health' || c.name.toLowerCase().contains('health'),
+        orElse: () => _categories.last,
+      )
+      .id;
+
   BudgetCategory categoryById(String id) => _categories.firstWhere(
         (BudgetCategory c) => c.id == id,
         orElse: () => _categories.last,

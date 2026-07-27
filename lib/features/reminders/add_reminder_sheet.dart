@@ -6,8 +6,11 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/alert_type_selector.dart';
 import '../../core/widgets/common.dart';
+import '../../core/services/attachment_service.dart';
 import '../../data/models/enums.dart';
+import '../../data/models/expense.dart';
 import '../../data/models/reminder.dart';
+import '../../data/stores/expense_store.dart';
 import '../../data/stores/id_gen.dart';
 import '../../data/stores/reminder_store.dart';
 import '../../data/stores/settings_store.dart';
@@ -53,7 +56,7 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
   final TextEditingController _dose = TextEditingController();
   String _form = 'Tablet';
   String _duration = 'Ongoing';
-  bool _attachPrescription = false;
+  String? _prescriptionPath;
   final TextEditingController _cost = TextEditingController();
 
   // Water
@@ -153,6 +156,37 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
         untilHour: _untilHour,
         amountPerReminderMl: _perReminderMl,
       );
+      // There is exactly ONE water reminder row: reuse it when editing and
+      // when adding, so saving the water tab never spawns duplicates.
+      final Reminder? existingWater = widget.existing ??
+          store.all.cast<Reminder?>().firstWhere(
+                (Reminder? x) => x!.type == ReminderType.water,
+                orElse: () => null,
+              );
+      final Reminder water = Reminder(
+        id: existingWater?.id ?? IdGen.next('rem'),
+        title: 'Water reminder',
+        type: ReminderType.water,
+        time: TimeOfDay(hour: _fromHour, minute: 0),
+        subtitle: _buildSubtitle(),
+        repeat: RepeatPattern.everyXHours,
+        everyXHours: _everyXHours,
+        alertType: _alert,
+        forceConfirmIntervalMinutes: _repeatMinutes,
+        enabled: existingWater?.enabled ?? true,
+        iconCodePoint: Icons.water_drop_outlined.codePoint,
+        colorValue: 0xFF185FA5,
+        notifStyle: _notifStyle,
+        completions: existingWater?.completions,
+      );
+      if (existingWater != null) {
+        store.update(water);
+      } else {
+        store.add(water);
+      }
+      Navigator.pop(context);
+      showSnack(context, 'Water reminder updated');
+      return;
     }
 
     final Reminder r = Reminder(
@@ -178,6 +212,9 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
       dependencyId: _dependencyId,
       note: _note.text.trim(),
       completions: widget.existing?.completions,
+      prescriptionPath: _prescriptionPath,
+      notifStyle: _notifStyle,
+      startedOn: widget.existing?.startedOn ?? dayKey(DateTime.now()),
     );
 
     if (_isEdit) {
@@ -185,8 +222,29 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
     } else {
       store.add(r);
     }
+
+    // PRD 2.2 — "Log cost" creates a real expense so medicine spend shows up
+    // in the Expenses module instead of vanishing.
+    final double cost = double.tryParse(_cost.text.trim()) ?? 0;
+    if (cost > 0) {
+      final ExpenseStore expenses = context.read<ExpenseStore>();
+      expenses.add(ExpenseTransaction(
+        id: IdGen.next('txn'),
+        type: TransactionType.expense,
+        amountPaise: (cost * 100).round(),
+        description: r.title,
+        categoryId: expenses.medicineCategoryId,
+        date: DateTime.now(),
+        note: 'Logged from reminder',
+      ));
+    }
+
     Navigator.pop(context);
-    showSnack(context, _isEdit ? 'Reminder updated' : 'Reminder saved');
+    showSnack(
+        context,
+        cost > 0
+            ? '${_isEdit ? 'Reminder updated' : 'Reminder saved'} · ₹${cost.toStringAsFixed(0)} logged to Expenses'
+            : (_isEdit ? 'Reminder updated' : 'Reminder saved'));
   }
 
   String _buildSubtitle() {
@@ -364,11 +422,12 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
       ),
       _optionalSection(<Widget>[
         ChoicePill(
-          label: 'Attach prescription',
+          label: _prescriptionPath == null
+              ? 'Attach prescription'
+              : 'Prescription attached',
           icon: Icons.description_outlined,
-          selected: _attachPrescription,
-          onTap: () =>
-              setState(() => _attachPrescription = !_attachPrescription),
+          selected: _prescriptionPath != null,
+          onTap: _attachPrescription,
         ),
         _dependencyPill(),
         ChoicePill(
@@ -379,6 +438,45 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
         ),
       ]),
     ];
+  }
+
+  /// Real photo/file attachment, stored in app documents (PRD 2.2).
+  Future<void> _attachPrescription() async {
+    if (_prescriptionPath != null) {
+      setState(() => _prescriptionPath = null);
+      return;
+    }
+    final String? choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (BuildContext c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(c, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from photos'),
+              onTap: () => Navigator.pop(c, 'gallery'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: const Text('Browse files'),
+              onTap: () => Navigator.pop(c, 'file'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+    final String? path = choice == 'file'
+        ? await AttachmentService.pickFile()
+        : await AttachmentService.pickImage(fromCamera: choice == 'camera');
+    if (!mounted || path == null) return;
+    setState(() => _prescriptionPath = path);
   }
 
   // ---- water tab --------------------------------------------------------
