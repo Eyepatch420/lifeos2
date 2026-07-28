@@ -88,9 +88,8 @@ class _AppShellState extends State<AppShell> {
               intervalMinutes: r.forceConfirmIntervalMinutes,
               snoozeMinutes:
                   context.read<SettingsStore>().defaultSnoozeMinutes,
-              onConfirm: () => context
-                  .read<ReminderStore>()
-                  .markDone(r, DateTime.now()),
+              onConfirm: () =>
+                  context.read<ReminderStore>().markDone(r, DateTime.now()),
               onSnooze: () => context.read<ReminderStore>().snooze(
                   r, context.read<SettingsStore>().defaultSnoozeMinutes),
             ),
@@ -114,6 +113,7 @@ class _AppShellState extends State<AppShell> {
               final AlarmStore store = context.read<AlarmStore>();
               store.clearSnooze(a);
               if (!a.repeats) store.setEnabled(a, false);
+              return true;
             },
             onSnooze: () => context.read<AlarmStore>().snooze(a),
           ),

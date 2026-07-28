@@ -112,6 +112,15 @@ class ReminderStore extends ChangeNotifier {
     return !isDone(dep, date);
   }
 
+  /// The dependency currently blocking [r] for [date], if any — used to show
+  /// the user exactly what they need to complete first.
+  Reminder? blockingDependency(Reminder r, DateTime date) {
+    if (r.dependencyId == null) return null;
+    final Reminder? dep = byId(r.dependencyId!);
+    if (dep == null) return null;
+    return isDone(dep, date) ? null : dep;
+  }
+
   int missedCount(DateTime date, DateTime now) => forDate(date)
       .where((Reminder r) => isMissed(r, date, now))
       .length;
@@ -138,19 +147,28 @@ class ReminderStore extends ChangeNotifier {
   // ---- mutations -------------------------------------------------------
 
   /// Toggling is idempotent for the same occurrence (PRD 2.1 AC1/AC5).
-  void toggleDone(Reminder r, DateTime date) {
+  /// Blocked by an unmet dependency (PRD 2.1 FR7) — un-completing is always
+  /// allowed since it only removes a completion, never bypasses a gate.
+  bool toggleDone(Reminder r, DateTime date) {
     final DateTime k = dayKey(date);
     if (r.completions[k] == CompletionStatus.done) {
       r.completions.remove(k);
-    } else {
-      r.completions[k] = CompletionStatus.done;
+      notifyListeners();
+      return true;
     }
+    if (isBlockedByDependency(r, date)) return false;
+    r.completions[k] = CompletionStatus.done;
     notifyListeners();
+    return true;
   }
 
-  void markDone(Reminder r, DateTime date) {
+  /// Every completion path (card, notification action, quick action) must
+  /// route through here so the dependency gate can't be bypassed anywhere.
+  bool markDone(Reminder r, DateTime date) {
+    if (isBlockedByDependency(r, date)) return false;
     r.completions[dayKey(date)] = CompletionStatus.done;
     notifyListeners();
+    return true;
   }
 
   /// PRD 2.4 — "Skip today" is explicitly distinct from "missed".
@@ -218,7 +236,10 @@ class ReminderStore extends ChangeNotifier {
       iconCodePoint: r.iconCodePoint,
       colorValue: r.colorValue,
       dependencyId: r.dependencyId,
+      prescriptionPath: r.prescriptionPath,
       note: r.note,
+      notifStyle: r.notifStyle,
+      startedOn: r.startedOn,
     );
   }
 

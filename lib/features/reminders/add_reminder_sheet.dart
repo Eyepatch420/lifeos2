@@ -93,6 +93,8 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
       _duration = e.duration;
       _note.text = e.note;
       _iconCode = e.iconCodePoint;
+      _notifStyle = e.notifStyle;
+      _prescriptionPath = e.prescriptionPath;
     } else {
       final WaterConfig w = context.read<ReminderStore>().water;
       _goalMl = w.goalMl;
@@ -420,6 +422,7 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
           onChanged: (String? v) => setState(() => _duration = v ?? 'Ongoing'),
         ),
       ),
+      _notifStyleField(),
       _optionalSection(<Widget>[
         ChoicePill(
           label: _prescriptionPath == null
@@ -586,6 +589,7 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
             '${_fmtHour(_fromHour)} and ${_fmtHour(_untilHour)} '
             '(${_occurrenceCount()} reminders/day).',
       ),
+      _notifStyleField(),
     ];
   }
 
@@ -684,25 +688,29 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
         ],
       ),
       if (_repeat == RepeatPattern.specificDays) _dayPicker(),
-      FieldWrap(
-        label: 'Notification style',
-        child: Wrap(
-          spacing: 6,
-          children: <Widget>[
-            for (final String s in <String>['Sound', 'Vibrate', 'Silent'])
-              ChoicePill(
-                label: s,
-                selected: _notifStyle == s,
-                onTap: () => setState(() => _notifStyle = s),
-              ),
-          ],
-        ),
-      ),
+      _notifStyleField(),
       _optionalSection(<Widget>[_dependencyPill()]),
     ];
   }
 
   // ---- shared field builders -------------------------------------------
+
+  Widget _notifStyleField() {
+    return FieldWrap(
+      label: 'Notification style',
+      child: Wrap(
+        spacing: 6,
+        children: <Widget>[
+          for (final String s in <String>['Sound', 'Vibrate', 'Silent'])
+            ChoicePill(
+              label: s,
+              selected: _notifStyle == s,
+              onTap: () => setState(() => _notifStyle = s),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _timeField() {
     return FieldWrap(

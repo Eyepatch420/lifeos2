@@ -39,6 +39,7 @@ class NotificationService {
   /// Set by main() so notification actions can mutate app state directly.
   static ReminderStore? _reminders;
   static AlarmStore? _alarms;
+  static SettingsStore? _settings;
 
   // Channel ids are versioned: Android freezes a channel's sound at creation,
   // so changing the sound requires a new id.
@@ -140,9 +141,11 @@ class NotificationService {
 
   /// Gives the service direct store access so notification action buttons can
   /// mark things done without the UI being alive.
-  static void bindStores(ReminderStore reminders, AlarmStore alarms) {
+  static void bindStores(ReminderStore reminders, AlarmStore alarms,
+      [SettingsStore? settings]) {
     _reminders = reminders;
     _alarms = alarms;
+    _settings = settings;
   }
 
   /// Handles taps and action buttons.
@@ -168,7 +171,9 @@ class NotificationService {
       case 'snooze':
         if (kind == 'reminder') {
           final Reminder? rem = _reminders?.byId(id);
-          if (rem != null) _reminders!.snooze(rem, 10);
+          if (rem != null) {
+            _reminders!.snooze(rem, _settings?.defaultSnoozeMinutes ?? 10);
+          }
         } else if (kind == 'alarm') {
           final Alarm? a = _alarms?.byId(id);
           if (a != null) _alarms!.snooze(a);
@@ -319,8 +324,15 @@ class NotificationService {
               exact: exact);
         case RepeatPattern.everyXHours:
           final int step = r.everyXHours < 1 ? 2 : r.everyXHours;
+          // Water reminders have an explicit "active hours" window; other
+          // every-X-hours reminders (e.g. medicine) fall back to a day-end
+          // cutoff so they don't fire overnight.
+          final int endHour =
+              r.type == ReminderType.water ? reminders.water.untilHour : 22;
           int slot = 0;
-          for (int h = r.time.hour; h <= 22 && slot < 12; h += step, slot++) {
+          for (int h = r.time.hour;
+              h <= endHour && slot < 12;
+              h += step, slot++) {
             final TimeOfDay t = TimeOfDay(hour: h, minute: r.time.minute);
             if (_suppressed(settings, r.alertType, t)) continue;
             await _zoned(_id(r.id, slot), r.title, body, _nextInstance(t),
@@ -342,16 +354,40 @@ class NotificationService {
       final NotificationDetails details = _detailsFor(AlertType.notification);
       const String body = 'Habit due today';
       final String payload = 'habit:${h.id}';
-      if (h.repeat == RepeatPattern.specificDays) {
-        for (final int wd in h.days) {
-          await _zoned(_id('hab_${h.id}', wd), h.name, body,
+      switch (h.repeat) {
+        case RepeatPattern.specificDays:
+          for (final int wd in h.days) {
+            await _zoned(_id('hab_${h.id}', wd), h.name, body,
+                _nextInstance(t, weekday: wd), details,
+                repeat: DateTimeComponents.dayOfWeekAndTime, payload: payload);
+          }
+        case RepeatPattern.weekly:
+          final int wd = h.days.isEmpty ? DateTime.monday : h.days.first;
+          await _zoned(_id('hab_${h.id}', 0), h.name, body,
               _nextInstance(t, weekday: wd), details,
               repeat: DateTimeComponents.dayOfWeekAndTime, payload: payload);
-        }
-      } else {
-        await _zoned(_id('hab_${h.id}', 0), h.name, body, _nextInstance(t),
-            details,
-            repeat: DateTimeComponents.time, payload: payload);
+        case RepeatPattern.monthly:
+          tz.TZDateTime d = tz.TZDateTime(
+              tz.local, now.year, now.month, 1, t.hour, t.minute);
+          final int target = h.startedOn?.day ?? 1;
+          final int lastDay = DateTime(d.year, d.month + 1, 0).day;
+          d = tz.TZDateTime(tz.local, d.year, d.month,
+              target > lastDay ? lastDay : target, t.hour, t.minute);
+          if (d.isBefore(now)) {
+            final int nextMonth = now.month + 1;
+            final int lastDayNext = DateTime(now.year, nextMonth + 1, 0).day;
+            d = tz.TZDateTime(tz.local, now.year, nextMonth,
+                target > lastDayNext ? lastDayNext : target, t.hour, t.minute);
+          }
+          await _zoned(_id('hab_${h.id}', 0), h.name, body, d, details,
+              repeat: DateTimeComponents.dayOfMonthAndTime, payload: payload);
+        case RepeatPattern.daily:
+        case RepeatPattern.everyXHours:
+          await _zoned(_id('hab_${h.id}', 0), h.name, body, _nextInstance(t),
+              details,
+              repeat: DateTimeComponents.time, payload: payload);
+        case RepeatPattern.sos:
+          break; // On-demand only, never scheduled.
       }
     }
 

@@ -9,8 +9,11 @@ import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/habit.dart';
+import '../../data/models/reminder.dart';
 import '../../data/stores/planner_store.dart';
+import '../../data/stores/reminder_store.dart';
 import '../home/habit_streak_detail_screen.dart';
+import '../reminders/reminders_screen.dart';
 import 'add_planner_item_sheet.dart';
 
 /// PRD 3.1 / 3.2 — Planner with Plan (agenda), Day (timeline) and Week views.
@@ -558,8 +561,13 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   Widget _dayView(BuildContext context) {
     final PlannerStore planner = context.watch<PlannerStore>();
+    final ReminderStore reminders = context.watch<ReminderStore>();
     final List<PlannerEvent> events = planner.eventsOn(_selected);
     final List<Habit> habits = planner.habitsFor(_selected);
+    final List<Reminder> dueReminders = reminders
+        .forDate(_selected)
+        .where((Reminder r) => r.enabled)
+        .toList();
     final bool isToday = isSameDay(_selected, _now);
 
     // Default window is 6 AM–10 PM, but it expands so an early or late item
@@ -575,6 +583,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
       if (t == null) continue;
       if (t.hour < startHour) startHour = t.hour;
       if (t.hour > endHour) endHour = t.hour;
+    }
+    for (final Reminder r in dueReminders) {
+      if (r.time.hour < startHour) startHour = r.time.hour;
+      if (r.time.hour > endHour) endHour = r.time.hour;
     }
     if (isToday) {
       if (_now.hour < startHour) startHour = _now.hour;
@@ -592,6 +604,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
         final List<Habit> hourHabits = habits
             .where((Habit h) =>
                 h.preferredTime != null && h.preferredTime!.hour == hour)
+            .toList();
+        final List<Reminder> hourReminders = dueReminders
+            .where((Reminder r) => r.time.hour == hour)
             .toList();
         final bool showNow = isToday && _now.hour == hour;
 
@@ -619,10 +634,14 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     margin: const EdgeInsets.only(top: 4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: hourEvents.isNotEmpty || hourHabits.isNotEmpty
+                      color: hourEvents.isNotEmpty ||
+                              hourHabits.isNotEmpty ||
+                              hourReminders.isNotEmpty
                           ? (hourHabits.isNotEmpty
                               ? AppColors.success
-                              : hourEvents.first.color)
+                              : hourEvents.isNotEmpty
+                                  ? hourEvents.first.color
+                                  : hourReminders.first.color)
                           : context.hairline,
                     ),
                   ),
@@ -693,7 +712,23 @@ class _PlannerScreenState extends State<PlannerScreen> {
                               existingEvent: e),
                           onLongPress: () => _eventMenu(context, planner, e),
                         ),
-                      if (hourEvents.isEmpty && hourHabits.isEmpty && !showNow)
+                      for (final Reminder r in hourReminders)
+                        _timelineBlock(
+                          context,
+                          color: r.color,
+                          title: r.title,
+                          subtitle: '${formatTimeOfDay(r.time)} · Reminder',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) => const RemindersScreen(),
+                            ),
+                          ),
+                        ),
+                      if (hourEvents.isEmpty &&
+                          hourHabits.isEmpty &&
+                          hourReminders.isEmpty &&
+                          !showNow)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Text(

@@ -27,7 +27,7 @@ Future<void> main() async {
 
   // Notification actions ("Done"/"Snooze") mutate stores directly, so the
   // service needs handles that outlive any widget.
-  NotificationService.bindStores(reminderStore, alarmStore);
+  NotificationService.bindStores(reminderStore, alarmStore, settingsStore);
 
   // Keep the device notification schedule in lock-step with store state.
   void sync() => NotificationService.syncAll(

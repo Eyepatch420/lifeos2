@@ -22,7 +22,6 @@ class Reminder {
     this.colorValue = 0xFF185FA5,
     this.dependencyId,
     this.prescriptionPath,
-    this.costPaise,
     this.note = '',
     this.notifStyle = 'Sound',
     this.startedOn,
@@ -51,7 +50,6 @@ class Reminder {
   /// PRD 2.1 FR7 — chained reminders don't fire until their dependency is done.
   String? dependencyId;
   String? prescriptionPath;
-  int? costPaise;
   String note;
 
   /// Transient snooze target — the scheduler fires at this instead of [time]
@@ -109,7 +107,9 @@ class Reminder {
       case RepeatPattern.specificDays:
         return specificDays.contains(date.weekday);
       case RepeatPattern.weekly:
-        return date.weekday == DateTime.monday;
+        return specificDays.isEmpty
+            ? date.weekday == DateTime.monday
+            : specificDays.contains(date.weekday);
       case RepeatPattern.monthly:
         return date.day == 1;
       case RepeatPattern.sos:
@@ -136,7 +136,6 @@ class Reminder {
         'colorValue': colorValue,
         'dependencyId': dependencyId,
         'prescriptionPath': prescriptionPath,
-        'costPaise': costPaise,
         'note': note,
         'notifStyle': notifStyle,
         'startedOn': startedOn?.toIso8601String(),
@@ -167,7 +166,6 @@ class Reminder {
       colorValue: j['colorValue'] as int? ?? 0xFF185FA5,
       dependencyId: j['dependencyId'] as String?,
       prescriptionPath: j['prescriptionPath'] as String?,
-      costPaise: j['costPaise'] as int?,
       note: j['note'] as String? ?? '',
       notifStyle: j['notifStyle'] as String? ?? 'Sound',
       startedOn: j['startedOn'] == null
@@ -198,7 +196,10 @@ class Reminder {
     int? iconCodePoint,
     int? colorValue,
     String? dependencyId,
+    String? prescriptionPath,
     String? note,
+    String? notifStyle,
+    DateTime? startedOn,
   }) {
     return Reminder(
       id: id,
@@ -219,13 +220,12 @@ class Reminder {
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       colorValue: colorValue ?? this.colorValue,
       dependencyId: dependencyId ?? this.dependencyId,
-      prescriptionPath: prescriptionPath,
-      costPaise: costPaise,
+      prescriptionPath: prescriptionPath ?? this.prescriptionPath,
       note: note ?? this.note,
-      notifStyle: notifStyle,
-      startedOn: startedOn,
+      notifStyle: notifStyle ?? this.notifStyle,
+      startedOn: startedOn ?? this.startedOn,
       completions: completions,
-    );
+    )..snoozedUntil = snoozedUntil;
   }
 }
 

@@ -356,9 +356,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     style: const TextStyle(fontSize: 11.5),
                   ),
                   trailing: InkWell(
-                    onTap: () => context
-                        .read<ReminderStore>()
-                        .markDone(nextReminder, _now),
+                    onTap: () {
+                      final ReminderStore reminders =
+                          context.read<ReminderStore>();
+                      if (!reminders.markDone(nextReminder, _now)) {
+                        final Reminder? dep = reminders.blockingDependency(
+                            nextReminder, _now);
+                        showSnack(
+                          context,
+                          dep == null
+                              ? 'Complete its dependency first'
+                              : 'Complete "${dep.title}" first',
+                        );
+                      }
+                    },
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
                       width: 27,

@@ -162,8 +162,20 @@ class AlertsScreen extends StatelessWidget {
                     primaryLabel:
                         r.isForceConfirm ? "I've taken it" : 'Mark done',
                     onPrimary: () {
-                      context.read<ReminderStore>().markDone(r, now);
-                      showSnack(context, '${r.title} marked done');
+                      final ReminderStore reminders =
+                          context.read<ReminderStore>();
+                      if (reminders.markDone(r, now)) {
+                        showSnack(context, '${r.title} marked done');
+                      } else {
+                        final Reminder? dep =
+                            reminders.blockingDependency(r, now);
+                        showSnack(
+                          context,
+                          dep == null
+                              ? 'Complete its dependency first'
+                              : 'Complete "${dep.title}" first',
+                        );
+                      }
                     },
                     secondaryLabel: 'Snooze',
                     onSecondary: () {

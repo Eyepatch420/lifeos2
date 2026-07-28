@@ -313,8 +313,11 @@ class _ReminderRow extends StatelessWidget {
       },
       confirmDismiss: (DismissDirection dir) async {
         if (dir == DismissDirection.startToEnd) {
-          store.markDone(reminder, date);
-          showSnack(context, '${reminder.title} marked done');
+          if (store.markDone(reminder, date)) {
+            showSnack(context, '${reminder.title} marked done');
+          } else {
+            _showBlockedMessage(context, store);
+          }
           return false; // keep the row in place
         }
         await _showSwipeActions(context, store);
@@ -440,9 +443,14 @@ class _ReminderRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 // Done control: filled once complete, further taps are no-ops
-                // beyond toggling back (PRD 2.1 AC5).
+                // beyond toggling back (PRD 2.1 AC5). Blocked while a
+                // dependency is unmet (PRD 2.1 FR7).
                 InkWell(
-                  onTap: () => store.toggleDone(reminder, date),
+                  onTap: () {
+                    if (!store.toggleDone(reminder, date)) {
+                      _showBlockedMessage(context, store);
+                    }
+                  },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
                     width: 27,
@@ -475,6 +483,16 @@ class _ReminderRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showBlockedMessage(BuildContext context, ReminderStore store) {
+    final Reminder? dep = store.blockingDependency(reminder, date);
+    showSnack(
+      context,
+      dep == null
+          ? 'Complete its dependency first'
+          : 'Complete "${dep.title}" first',
     );
   }
 
@@ -542,8 +560,9 @@ class _ReminderRow extends StatelessWidget {
               leading: const Icon(Icons.check, color: AppColors.checkGreen),
               title: const Text('Mark as done'),
               onTap: () {
-                store.markDone(reminder, date);
+                final bool ok = store.markDone(reminder, date);
                 Navigator.pop(ctx);
+                if (!ok) _showBlockedMessage(context, store);
               },
             ),
             ListTile(

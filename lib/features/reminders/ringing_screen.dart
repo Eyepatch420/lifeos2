@@ -29,7 +29,10 @@ class RingingScreen extends StatefulWidget {
   final AlertType alertType;
   final int intervalMinutes;
   final int snoozeMinutes;
-  final VoidCallback? onConfirm;
+
+  /// Returns false to reject the confirm (e.g. an unmet dependency) — the
+  /// alarm keeps ringing and re-arms rather than closing silently.
+  final bool Function()? onConfirm;
   final VoidCallback? onSnooze;
 
   static Future<void> show(BuildContext context, RingingScreen screen) {
@@ -94,9 +97,16 @@ class _RingingScreenState extends State<RingingScreen>
   }
 
   Future<void> _confirm() async {
+    if (widget.onConfirm != null && !widget.onConfirm!()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Complete its dependency first'),
+        ));
+      }
+      return;
+    }
     await _stopAudio();
     await NotificationService.cancelForceConfirmRepeat(widget.payload);
-    widget.onConfirm?.call();
     if (mounted) Navigator.pop(context);
   }
 
