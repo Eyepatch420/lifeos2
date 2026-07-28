@@ -15,7 +15,7 @@ import 'dart:convert';
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    await Persistence.init();
+    await Persistence.reset();
   });
 
   test('a backup taken on a fresh install contains every module', () {

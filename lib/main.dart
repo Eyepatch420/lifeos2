@@ -10,6 +10,7 @@ import 'data/stores/health_store.dart';
 import 'data/stores/lists_notes_store.dart';
 import 'data/stores/persistence.dart';
 import 'data/stores/planner_store.dart';
+import 'data/stores/progress_store.dart';
 import 'data/stores/reminder_store.dart';
 import 'data/stores/settings_store.dart';
 
@@ -46,6 +47,7 @@ Future<void> main() async {
   final ExpenseStore expenseStore = ExpenseStore();
   final HealthStore healthStore = HealthStore();
   final ListsNotesStore listsNotesStore = ListsNotesStore();
+  final ProgressStore progressStore = ProgressStore();
 
   // Write every store once at startup. Without this, a store the user hasn't
   // touched yet has nothing on disk, so a backup taken on a fresh install
@@ -58,6 +60,7 @@ Future<void> main() async {
   expenseStore.flush();
   healthStore.flush();
   listsNotesStore.flush();
+  progressStore.flush();
 
   runApp(
     MultiProvider(
@@ -70,6 +73,7 @@ Future<void> main() async {
         ChangeNotifierProvider<ExpenseStore>.value(value: expenseStore),
         ChangeNotifierProvider<HealthStore>.value(value: healthStore),
         ChangeNotifierProvider<ListsNotesStore>.value(value: listsNotesStore),
+        ChangeNotifierProvider<ProgressStore>.value(value: progressStore),
       ],
       child: const LifeOSApp(),
     ),

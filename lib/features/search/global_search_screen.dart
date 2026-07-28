@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
+import '../../data/models/alarm.dart';
 import '../../data/models/commitments.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/expense.dart';
@@ -12,6 +13,7 @@ import '../../data/models/habit.dart';
 import '../../data/models/health.dart';
 import '../../data/models/lists_notes.dart';
 import '../../data/models/reminder.dart';
+import '../../data/stores/alarm_store.dart';
 import '../../data/stores/commitments_store.dart';
 import '../../data/stores/expense_store.dart';
 import '../../data/stores/health_store.dart';
@@ -19,6 +21,7 @@ import '../../data/stores/lists_notes_store.dart';
 import '../../data/stores/planner_store.dart';
 import '../../data/stores/reminder_store.dart';
 import '../bills/bills_screen.dart';
+import '../clock/clock_screen.dart';
 import '../documents/document_vault_screen.dart';
 import '../expenses/expenses_screen.dart';
 import '../health/report_detail_screen.dart';
@@ -193,6 +196,27 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             context,
             MaterialPageRoute<void>(
                 builder: (_) => ReportDetailScreen(reportId: r.id)),
+          ),
+        ));
+      }
+    }
+
+    // Alarms were the one module search ignored entirely.
+    final AlarmStore alarms = context.read<AlarmStore>();
+    for (final Alarm a in alarms.all) {
+      if (_matches(a.label) ||
+          _matches(formatTimeOfDay(a.time)) ||
+          _matches(a.repeatLabel)) {
+        out.add(_Result(
+          title: a.label.isEmpty ? 'Alarm' : a.label,
+          subtitle: '${formatTimeOfDay(a.time)} · ${a.repeatLabel}'
+              '${a.enabled ? '' : ' · off'}',
+          module: 'Clock',
+          icon: Icons.alarm,
+          color: AppColors.clock,
+          onOpen: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(builder: (_) => const ClockScreen()),
           ),
         ));
       }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -11,6 +12,7 @@ import '../../data/models/expense.dart';
 import '../../data/stores/expense_store.dart';
 import '../../data/stores/health_store.dart';
 import '../../data/stores/planner_store.dart';
+import '../../data/stores/progress_store.dart';
 import '../../data/stores/reminder_store.dart';
 import 'habit_streak_detail_screen.dart';
 
@@ -104,9 +106,17 @@ class ConsolidatedProgressScreen extends StatelessWidget {
                 100)
             .round();
 
-    // PRD 1.3 AC3 — delta vs. a snapshot taken at the start of last month.
-    final int lastMonthScore = _lastMonthScore(expenses, planner, health, now);
-    final int delta = score - lastMonthScore;
+    // PRD 1.3 AC3 — delta against a real recorded snapshot. Recomputing the
+    // current numbers with a past date (the old approach) just reproduced
+    // today's score, so the delta was meaningless.
+    final ProgressStore progress = context.watch<ProgressStore>();
+    final int? lastMonthScore = progress.previousMonthScore(now);
+    final int? delta = lastMonthScore == null ? null : score - lastMonthScore;
+
+    // Record this month so next month has something honest to compare with.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      progress.record(now, score);
+    });
 
     return Scaffold(
       body: Column(
@@ -140,17 +150,8 @@ class ConsolidatedProgressScreen extends StatelessWidget {
     );
   }
 
-  int _lastMonthScore(ExpenseStore expenses, PlannerStore planner,
-      HealthStore health, DateTime now) {
-    final DateTime lastMonth = DateTime(now.year, now.month - 1, 15);
-    final double budget = expenses.budgetAdherence(startOfMonth(lastMonth));
-    final double habits = planner.monthlyAdherence(lastMonth);
-    final double tracking = health.trackingAdherence(lastMonth);
-    final double composite = (budget * 0.3 + habits * 0.45 + tracking * 0.25);
-    return (composite * 100).round();
-  }
 
-  Widget _header(BuildContext context, int score, int delta, DateTime now) {
+  Widget _header(BuildContext context, int score, int? delta, DateTime now) {
     return Container(
       color: AppColors.progress,
       child: SafeArea(
@@ -179,10 +180,10 @@ class ConsolidatedProgressScreen extends StatelessWidget {
                   IconButton(
                     tooltip: 'Share summary',
                     icon: const Icon(Icons.ios_share, color: Colors.white),
-                    onPressed: () => showSnack(
-                      context,
-                      'Summary copied: wellness score $score/100 '
+                    onPressed: () => ShareService.shareText(
+                      'LifeOS wellness score: $score/100 '
                       'for ${fmtMonthYear.format(now)}',
+                      subject: 'My LifeOS progress',
                     ),
                   ),
                 ],
@@ -224,14 +225,19 @@ class ConsolidatedProgressScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Text(
-                            delta == 0
-                                ? 'same as last month'
-                                : '${delta > 0 ? '+' : ''}$delta from last month',
+                            // No invented delta before there is history.
+                            delta == null
+                                ? 'first month tracked'
+                                : delta == 0
+                                    ? 'same as last month'
+                                    : '${delta > 0 ? '+' : ''}$delta from last month',
                             style: TextStyle(
                               fontSize: 12,
-                              color: delta >= 0
-                                  ? const Color(0xFF9FE1CB)
-                                  : const Color(0xFFF09595),
+                              color: delta == null
+                                  ? Colors.white.withValues(alpha: 0.7)
+                                  : (delta >= 0
+                                      ? const Color(0xFF9FE1CB)
+                                      : const Color(0xFFF09595)),
                             ),
                           ),
                         ),
