@@ -27,7 +27,7 @@ class PlannerStore extends ChangeNotifier {
     return true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'habits': _habits.map((Habit h) => h.toJson()).toList(),
       'events': _events.map((PlannerEvent e) => e.toJson()).toList(),
@@ -36,7 +36,7 @@ class PlannerStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 

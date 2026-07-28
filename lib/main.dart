@@ -43,6 +43,22 @@ Future<void> main() async {
   settingsStore.addListener(sync);
   sync();
 
+  final ExpenseStore expenseStore = ExpenseStore();
+  final HealthStore healthStore = HealthStore();
+  final ListsNotesStore listsNotesStore = ListsNotesStore();
+
+  // Write every store once at startup. Without this, a store the user hasn't
+  // touched yet has nothing on disk, so a backup taken on a fresh install
+  // would silently omit it.
+  settingsStore.flush();
+  reminderStore.flush();
+  plannerStore.flush();
+  alarmStore.flush();
+  commitmentsStore.flush();
+  expenseStore.flush();
+  healthStore.flush();
+  listsNotesStore.flush();
+
   runApp(
     MultiProvider(
       providers: [
@@ -51,10 +67,9 @@ Future<void> main() async {
         ChangeNotifierProvider<ReminderStore>.value(value: reminderStore),
         ChangeNotifierProvider<PlannerStore>.value(value: plannerStore),
         ChangeNotifierProvider<CommitmentsStore>.value(value: commitmentsStore),
-        ChangeNotifierProvider<ExpenseStore>(create: (_) => ExpenseStore()),
-        ChangeNotifierProvider<HealthStore>(create: (_) => HealthStore()),
-        ChangeNotifierProvider<ListsNotesStore>(
-            create: (_) => ListsNotesStore()),
+        ChangeNotifierProvider<ExpenseStore>.value(value: expenseStore),
+        ChangeNotifierProvider<HealthStore>.value(value: healthStore),
+        ChangeNotifierProvider<ListsNotesStore>.value(value: listsNotesStore),
       ],
       child: const LifeOSApp(),
     ),

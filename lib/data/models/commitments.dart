@@ -53,6 +53,7 @@ class Membership {
     this.note = '',
     this.forceConfirmIntervalMinutes = 2,
     this.remindLaterUntil,
+    this.cardImagePath,
     List<RenewalEntry>? history,
   }) : history = history ?? <RenewalEntry>[];
 
@@ -74,6 +75,9 @@ class Membership {
 
   /// "Remind later" from the Alerts screen suppresses the alert until then.
   DateTime? remindLaterUntil;
+
+  /// Photo of the physical membership card, stored in app documents.
+  String? cardImagePath;
   final List<RenewalEntry> history;
 
   double get cost => costPaise / 100.0;
@@ -132,6 +136,7 @@ class Membership {
         'note': note,
         'forceConfirmIntervalMinutes': forceConfirmIntervalMinutes,
         'remindLaterUntil': remindLaterUntil?.toIso8601String(),
+        'cardImagePath': cardImagePath,
         'history': history.map((RenewalEntry e) => e.toJson()).toList(),
       };
 
@@ -155,6 +160,7 @@ class Membership {
         remindLaterUntil: j['remindLaterUntil'] == null
             ? null
             : DateTime.parse(j['remindLaterUntil'] as String),
+        cardImagePath: j['cardImagePath'] as String?,
         history: (j['history'] as List<dynamic>? ?? <dynamic>[])
             .map((dynamic e) => RenewalEntry.fromJson(e as Map<String, dynamic>))
             .toList(),

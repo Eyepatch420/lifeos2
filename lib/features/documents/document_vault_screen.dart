@@ -1,6 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/attachment_service.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -319,35 +324,28 @@ class _DocumentVaultScreenState extends State<DocumentVaultScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
-              width: double.infinity,
-              height: 130,
-              decoration: BoxDecoration(
-                color: ctx.fieldColor,
+            // Shows the actual attached image; other file types fall back to
+            // a type icon since we can't render them inline.
+            if (d.filePath != null && AttachmentService.isImage(d.filePath!))
+              ClipRRect(
                 borderRadius: BorderRadius.circular(9),
+                child: Image.file(
+                  File(d.filePath!),
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      _previewPlaceholder(ctx, d, 'File is missing'),
+                ),
+              )
+            else
+              _previewPlaceholder(
+                ctx,
+                d,
+                d.filePath == null
+                    ? 'No file attached'
+                    : '${d.name}.${d.fileExtension ?? 'file'}',
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(_iconFor(d), size: 34, color: ctx.txtTertiary),
-                  const SizedBox(height: 8),
-                  Text(
-                    d.fileExtension == null
-                        ? 'No file attached'
-                        : 'Preview of ${d.name}.${d.fileExtension}',
-                    style: TextStyle(fontSize: 12, color: ctx.txtSecondary),
-                  ),
-                  if (d.redactSensitiveNumbers)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        'ID number masked in the stored file',
-                        style: TextStyle(fontSize: 11, color: ctx.txtTertiary),
-                      ),
-                    ),
-                ],
-              ),
-            ),
             const SizedBox(height: 12),
             if (d.issueDate != null)
               Text(
@@ -389,7 +387,11 @@ class _DocumentVaultScreenState extends State<DocumentVaultScreen> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              showSnack(context, 'Exported ${d.name}');
+              if (d.filePath == null) {
+                showSnack(context, 'No file attached to export');
+                return;
+              }
+              ShareService.shareFilePath(d.filePath!, subject: d.name);
             },
             child: const Text('Export'),
           ),
@@ -398,38 +400,42 @@ class _DocumentVaultScreenState extends State<DocumentVaultScreen> {
     );
   }
 
-  Future<bool> _authenticate(BuildContext context, StoredDocument d) async {
-    final bool biometric = context.read<SettingsStore>().biometricPreferred;
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Row(
-          children: <Widget>[
-            Icon(biometric ? Icons.fingerprint : Icons.pin_outlined,
-                color: AppColors.documents),
-            const SizedBox(width: 10),
-            const Expanded(child: Text('Unlock document')),
-          ],
-        ),
-        content: Text(
-          '"${d.name}" is protected. Confirm with '
-          '${biometric ? 'your fingerprint or face' : 'your PIN'} to view it.',
-          style: const TextStyle(fontSize: 13.5, height: 1.5),
-        ),
-        actions: <Widget>[
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.documents),
-            onPressed: () => Navigator.pop(ctx, true),
-            icon: Icon(biometric ? Icons.fingerprint : Icons.check, size: 18),
-            label: const Text('Unlock'),
+  Widget _previewPlaceholder(
+      BuildContext ctx, StoredDocument d, String label) {
+    return Container(
+      width: double.infinity,
+      height: 130,
+      decoration: BoxDecoration(
+        color: ctx.fieldColor,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Icon(_iconFor(d), size: 34, color: ctx.txtTertiary),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: ctx.txtSecondary),
           ),
+          if (d.redactSensitiveNumbers)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'ID number masked in the stored file',
+                style: TextStyle(fontSize: 11, color: ctx.txtTertiary),
+              ),
+            ),
         ],
       ),
     );
-    return ok ?? false;
+  }
+
+  /// PRD Gap 2 — a real device credential prompt. Previously this was a plain
+  /// dialog whose "Unlock" button simply returned true, so the lock protected
+  /// nothing.
+  Future<bool> _authenticate(BuildContext context, StoredDocument d) async {
+    return AuthService.authenticate('Unlock "${d.name}"');
   }
 
   Future<void> _menu(

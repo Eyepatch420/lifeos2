@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/attachment_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -44,6 +45,7 @@ class _AddMembershipSheetState extends State<AddMembershipSheet> {
   int _leadDays = 7;
   late AlertType _alert;
   int _repeatMinutes = 2;
+  String? _cardPath;
   bool _linkToExpense = false;
   final TextEditingController _note = TextEditingController();
   bool _submitted = false;
@@ -65,6 +67,8 @@ class _AddMembershipSheetState extends State<AddMembershipSheet> {
       _location.text = e.location;
       _cost.text = e.cost.toStringAsFixed(0);
       _note.text = e.note;
+      _cardPath = e.cardImagePath;
+      _repeatMinutes = e.forceConfirmIntervalMinutes;
       _linkToExpense = e.linkedExpenseId != null;
     }
   }
@@ -148,6 +152,10 @@ class _AddMembershipSheetState extends State<AddMembershipSheet> {
       active: widget.existing?.active ?? true,
       linkedExpenseId: linkedId,
       note: _note.text.trim(),
+      // Collected by the alert selector but previously never stored.
+      forceConfirmIntervalMinutes: _repeatMinutes,
+      remindLaterUntil: widget.existing?.remindLaterUntil,
+      cardImagePath: _cardPath,
       history: widget.existing?.history,
     );
 
@@ -294,11 +302,13 @@ class _AddMembershipSheetState extends State<AddMembershipSheet> {
           runSpacing: 6,
           children: <Widget>[
             ChoicePill(
-              label: 'Scan membership card',
+              label: _cardPath == null
+                  ? 'Scan membership card'
+                  : 'Card attached',
               icon: Icons.camera_alt_outlined,
-              selected: false,
+              selected: _cardPath != null,
               color: AppColors.memberships,
-              onTap: () => showSnack(context, 'Card scanned and attached'),
+              onTap: _scanCard,
             ),
             ChoicePill(
               label: 'Link to expense',
@@ -422,5 +432,38 @@ class _AddMembershipSheetState extends State<AddMembershipSheet> {
       ),
     );
     if (v != null) setState(() => _note.text = v);
+  }
+
+  /// Photographs the physical card and stores it with the membership.
+  Future<void> _scanCard() async {
+    if (_cardPath != null) {
+      setState(() => _cardPath = null);
+      return;
+    }
+    final bool? camera = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (BuildContext c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Photograph the card'),
+              onTap: () => Navigator.pop(c, true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from photos'),
+              onTap: () => Navigator.pop(c, false),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (camera == null) return;
+    final String? path =
+        await AttachmentService.pickImage(fromCamera: camera);
+    if (path == null || !mounted) return;
+    setState(() => _cardPath = path);
   }
 }

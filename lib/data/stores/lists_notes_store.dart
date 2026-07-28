@@ -26,7 +26,7 @@ class ListsNotesStore extends ChangeNotifier {
     return true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'lists': _lists.map((TaskList l) => l.toJson()).toList(),
       'notes': _notes.map((Note n) => n.toJson()).toList(),
@@ -35,7 +35,7 @@ class ListsNotesStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 

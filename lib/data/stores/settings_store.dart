@@ -31,7 +31,7 @@ class SettingsStore extends ChangeNotifier {
     weeklyDigestEnabled = j['weeklyDigestEnabled'] as bool? ?? true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'name': name,
       'email': email,
@@ -51,7 +51,7 @@ class SettingsStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 

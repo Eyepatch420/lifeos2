@@ -24,7 +24,7 @@ class AlarmStore extends ChangeNotifier {
     return true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'alarms': _alarms.map((Alarm a) => a.toJson()).toList(),
     });
@@ -32,7 +32,7 @@ class AlarmStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 

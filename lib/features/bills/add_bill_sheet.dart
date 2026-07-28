@@ -140,6 +140,9 @@ class _AddBillSheetState extends State<AddBillSheet> {
           _isEmi ? int.tryParse(_installments.text.trim()) : null,
       linkedCategoryId: _linkedCategoryId,
       lastPaidOn: widget.existing?.lastPaidOn,
+      // Collected by the alert selector but previously never stored.
+      forceConfirmIntervalMinutes: _repeatMinutes,
+      snoozedUntil: widget.existing?.snoozedUntil,
     );
 
     if (_isEdit) {

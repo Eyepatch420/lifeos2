@@ -31,7 +31,7 @@ class CommitmentsStore extends ChangeNotifier {
     return true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'memberships': _memberships.map((Membership m) => m.toJson()).toList(),
       'bills': _bills.map((Bill b) => b.toJson()).toList(),
@@ -41,7 +41,7 @@ class CommitmentsStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 

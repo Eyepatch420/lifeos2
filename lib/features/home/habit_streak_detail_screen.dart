@@ -330,7 +330,9 @@ class HabitStreakDetailScreen extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: 2.3,
+          // 2.3 left the label + value + sub-label 3.5px short of fitting,
+          // so every tile painted an overflow stripe.
+          childAspectRatio: 2.0,
           children: <Widget>[
             _statTile(context, 'Completion rate',
                 '${(stats.completionRate * 100).round()}%', 'this month'),

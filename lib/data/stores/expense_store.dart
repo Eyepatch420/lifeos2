@@ -40,7 +40,7 @@ class ExpenseStore extends ChangeNotifier {
     return true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'txns': _txns.map((ExpenseTransaction t) => t.toJson()).toList(),
       'categories': _categories.map((BudgetCategory c) => c.toJson()).toList(),
@@ -49,7 +49,7 @@ class ExpenseStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 

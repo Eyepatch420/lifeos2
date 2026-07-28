@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/services/backup_service.dart';
+import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -122,9 +126,8 @@ class SettingsScreen extends StatelessWidget {
                         icon: Icons.restore_outlined,
                         color: AppColors.success,
                         title: 'Backup & restore',
-                        subtitle: 'Encrypted local backup file',
-                        onTap: () => showSnack(
-                            context, 'Backup saved to your device storage'),
+                        subtitle: 'Save a backup file, or restore from one',
+                        onTap: () => _backupAndRestore(context),
                       ),
                       Divider(height: 1, color: context.hairline),
                       ListTile(
@@ -204,17 +207,30 @@ class SettingsScreen extends StatelessWidget {
                 AppCard(
                   child: Column(
                     children: <Widget>[
-                      const ListTile(
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        leading: IconTile(
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        leading: const IconTile(
                             icon: Icons.info_outline,
                             color: AppColors.textSecondary),
-                        title: Text('Version',
+                        title: const Text('Version',
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w600)),
-                        subtitle: Text('1.0.0 (build 1)',
-                            style: TextStyle(fontSize: 12)),
+                        // Read from the package rather than hardcoded, so it
+                        // can't drift away from what was actually shipped.
+                        subtitle: FutureBuilder<PackageInfo>(
+                          future: PackageInfo.fromPlatform(),
+                          builder: (BuildContext c,
+                              AsyncSnapshot<PackageInfo> snap) {
+                            final PackageInfo? i = snap.data;
+                            return Text(
+                              i == null
+                                  ? '—'
+                                  : '${i.version} (build ${i.buildNumber})',
+                              style: const TextStyle(fontSize: 12),
+                            );
+                          },
+                        ),
                       ),
                       Divider(height: 1, color: context.hairline),
                       _tile(
@@ -223,8 +239,8 @@ class SettingsScreen extends StatelessWidget {
                         color: AppColors.textSecondary,
                         title: 'Privacy policy',
                         subtitle: 'How your data is handled',
-                        onTap: () =>
-                            showSnack(context, 'Opening privacy policy'),
+                        onTap: () => _openUrl(
+                            context, Uri.parse('https://lifeos.app/privacy')),
                       ),
                       Divider(height: 1, color: context.hairline),
                       _tile(
@@ -233,7 +249,15 @@ class SettingsScreen extends StatelessWidget {
                         color: AppColors.textSecondary,
                         title: 'Support',
                         subtitle: 'support@lifeos.app',
-                        onTap: () => showSnack(context, 'Opening mail app'),
+                        onTap: () => _openUrl(
+                            context,
+                            Uri(
+                              scheme: 'mailto',
+                              path: 'support@lifeos.app',
+                              queryParameters: <String, String>{
+                                'subject': 'LifeOS support',
+                              },
+                            )),
                       ),
                     ],
                   ),
@@ -638,12 +662,122 @@ class SettingsScreen extends StatelessWidget {
           TextButton(
               onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
-            onPressed: () {
+            key: const Key('export_json'),
+            onPressed: () async {
               Navigator.pop(ctx);
-              showSnack(context, 'Exported $total records to your device');
+              // Writes a real file and opens the share sheet — this button
+              // previously only showed a snackbar and exported nothing.
+              final String path = await ShareService.shareAsFile(
+                BackupService.buildBackup(),
+                BackupService.suggestedFileName(),
+                subject: 'LifeOS backup — $total records',
+              );
+              if (context.mounted) {
+                showSnack(context, 'Saved to ${path.split('/').last}');
+              }
             },
             child: const Text('Export JSON'),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Opens a URL in the browser / mail app, reporting honestly when no app
+  /// on the device can handle it.
+  Future<void> _openUrl(BuildContext context, Uri uri) async {
+    final bool launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    ).catchError((_) => false);
+    if (!launched && context.mounted) {
+      showSnack(context, 'No app available to open this');
+    }
+  }
+
+  /// Real backup / restore (PRD 10.1). Restore rewrites stored state and asks
+  /// for a relaunch, so it is applied all-or-nothing rather than half-live.
+  Future<void> _backupAndRestore(BuildContext context) async {
+    final String? action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (BuildContext sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Backup & restore',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.save_alt_outlined),
+              title: const Text('Save a backup file'),
+              subtitle: const Text(
+                  'Everything from every module, as one JSON file',
+                  style: TextStyle(fontSize: 12)),
+              onTap: () => Navigator.pop(sheet, 'backup'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.restore_outlined),
+              title: const Text('Restore from a backup'),
+              subtitle: const Text('Replaces everything currently on this device',
+                  style: TextStyle(fontSize: 12)),
+              onTap: () => Navigator.pop(sheet, 'restore'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !context.mounted) return;
+
+    if (action == 'backup') {
+      final String path = await ShareService.shareAsFile(
+        BackupService.buildBackup(),
+        BackupService.suggestedFileName(),
+        subject: 'LifeOS backup',
+      );
+      if (context.mounted) {
+        showSnack(context, 'Backup saved as ${path.split('/').last}');
+      }
+      return;
+    }
+
+    // Restore is destructive — confirm before touching anything.
+    final bool ok = await confirmDialog(
+      context,
+      title: 'Restore from a backup?',
+      message: 'Everything currently in LifeOS on this device will be '
+          'replaced by the contents of the backup file. This cannot be undone.',
+      confirmLabel: 'Choose file',
+    );
+    if (!ok || !context.mounted) return;
+
+    final RestoreResult result = await BackupService.restoreFromFile();
+    if (!context.mounted || result.cancelled) return;
+
+    if (!result.isSuccess) {
+      showSnack(context, result.error ?? 'Restore failed');
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Backup restored'),
+        content: Text(
+          '${result.sectionsRestored} section'
+          '${result.sectionsRestored == 1 ? '' : 's'} restored. '
+          'Close and reopen LifeOS to see your restored data.',
+          style: const TextStyle(fontSize: 13.5, height: 1.5),
+        ),
+        actions: <Widget>[
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Got it')),
         ],
       ),
     );

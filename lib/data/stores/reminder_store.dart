@@ -33,7 +33,7 @@ class ReminderStore extends ChangeNotifier {
     return true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'reminders': _reminders.map((Reminder r) => r.toJson()).toList(),
       'water': water.toJson(),
@@ -44,7 +44,7 @@ class ReminderStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/attachment_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
@@ -45,6 +46,7 @@ class _AddDocumentSheetState extends State<AddDocumentSheet> {
   bool _locked = false;
   bool _redact = false;
   String? _fileExtension;
+  String? _filePath;
   bool _submitted = false;
 
   bool get _isEdit => widget.existing != null;
@@ -74,6 +76,7 @@ class _AddDocumentSheetState extends State<AddDocumentSheet> {
     _locked = e?.locked ?? false;
     _redact = e?.redactSensitiveNumbers ?? false;
     _fileExtension = e?.fileExtension;
+    _filePath = e?.filePath;
     if (e != null) {
       _name.text = e.name;
       _note.text = e.note;
@@ -125,7 +128,9 @@ class _AddDocumentSheetState extends State<AddDocumentSheet> {
       expiryDate: _expiry,
       reminderLeadMonths: _leadMonths,
       alertType: _alert,
-      filePath: widget.existing?.filePath,
+      // Previously always taken from `existing`, so a newly attached file
+      // was silently dropped on save.
+      filePath: _filePath,
       fileExtension: _fileExtension,
       locked: _locked,
       redactSensitiveNumbers: _redact,
@@ -411,8 +416,10 @@ class _AddDocumentSheetState extends State<AddDocumentSheet> {
     );
   }
 
+  /// Attaches a real file, copied into app storage so the vault keeps working
+  /// even if the original is moved (PRD 9.1, closes Gap 3 — any file type).
   Future<void> _pickFile() async {
-    final String? ext = await showModalBottomSheet<String>(
+    final String? source = await showModalBottomSheet<String>(
       context: context,
       builder: (BuildContext ctx) => SafeArea(
         child: Column(
@@ -430,27 +437,48 @@ class _AddDocumentSheetState extends State<AddDocumentSheet> {
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
               title: const Text('Scan with camera'),
-              subtitle:
-                  const Text('Saved as PDF', style: TextStyle(fontSize: 12)),
-              onTap: () => Navigator.pop(ctx, 'pdf'),
+              onTap: () => Navigator.pop(ctx, 'camera'),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Choose from photos'),
-              onTap: () => Navigator.pop(ctx, 'jpg'),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
             ),
             ListTile(
               leading: const Icon(Icons.folder_open_outlined),
               title: const Text('Browse all files'),
               subtitle: const Text('Any file type is supported',
                   style: TextStyle(fontSize: 12)),
-              onTap: () => Navigator.pop(ctx, 'docx'),
+              onTap: () => Navigator.pop(ctx, 'file'),
             ),
+            if (_filePath != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline,
+                    color: AppColors.dangerBright),
+                title: const Text('Remove attachment'),
+                onTap: () => Navigator.pop(ctx, 'clear'),
+              ),
             const SizedBox(height: 8),
           ],
         ),
       ),
     );
-    if (ext != null) setState(() => _fileExtension = ext);
+    if (source == null) return;
+    if (source == 'clear') {
+      setState(() {
+        _filePath = null;
+        _fileExtension = null;
+      });
+      return;
+    }
+
+    final String? path = source == 'file'
+        ? await AttachmentService.pickFile()
+        : await AttachmentService.pickImage(fromCamera: source == 'camera');
+    if (path == null || !mounted) return;
+    setState(() {
+      _filePath = path;
+      _fileExtension = AttachmentService.extensionOf(path);
+    });
   }
 }

@@ -34,7 +34,7 @@ class HealthStore extends ChangeNotifier {
     return true;
   }
 
-  void _save() {
+  void flush() {
     Persistence.save(_key, <String, dynamic>{
       'reports': _reports.map((LabReport r) => r.toJson()).toList(),
       'vitals': _vitals.map((VitalReading v) => v.toJson()).toList(),
@@ -45,7 +45,7 @@ class HealthStore extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _save();
+    flush();
     super.notifyListeners();
   }
 
