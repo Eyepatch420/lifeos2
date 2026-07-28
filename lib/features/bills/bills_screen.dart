@@ -8,7 +8,10 @@ import '../../core/widgets/common.dart';
 import '../../core/widgets/module_header.dart';
 import '../../data/models/commitments.dart';
 import '../../data/models/enums.dart';
+import '../../data/models/expense.dart';
 import '../../data/stores/commitments_store.dart';
+import '../../data/stores/expense_store.dart';
+import '../../data/stores/id_gen.dart';
 import 'add_bill_sheet.dart';
 
 /// PRD 8.1 — bills, subscriptions and EMIs with overdue always surfaced.
@@ -415,8 +418,20 @@ class _BillsScreenState extends State<BillsScreen> {
               ),
               onTap: () {
                 store.markBillPaid(b, now);
+                // Bills↔Expenses — a paid bill is real spend, so it must
+                // show up in the Expenses module and count toward budgets.
+                final ExpenseStore expenses = context.read<ExpenseStore>();
+                expenses.add(ExpenseTransaction(
+                  id: IdGen.next('txn'),
+                  type: TransactionType.expense,
+                  amountPaise: b.amountPaise,
+                  description: b.name,
+                  categoryId: b.linkedCategoryId ?? expenses.categories.last.id,
+                  date: now,
+                  note: 'Logged from Bills',
+                ));
                 Navigator.pop(ctx);
-                showSnack(context, '${b.name} marked paid');
+                showSnack(context, '${b.name} marked paid · logged to Expenses');
               },
             ),
             ListTile(

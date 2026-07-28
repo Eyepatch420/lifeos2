@@ -7,7 +7,10 @@ import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
 import '../../data/models/commitments.dart';
 import '../../data/models/enums.dart';
+import '../../data/models/expense.dart';
 import '../../data/stores/commitments_store.dart';
+import '../../data/stores/expense_store.dart';
+import '../../data/stores/id_gen.dart';
 import 'add_membership_sheet.dart';
 
 /// PRD 7.2 — membership detail, renewal history and reminder configuration.
@@ -310,10 +313,27 @@ class MembershipDetailScreen extends StatelessWidget {
                           ),
                           onPressed: () {
                             store.markRenewed(m, now);
+                            // Memberships↔Expenses — a renewal is real spend,
+                            // so it must show up in Expenses/budgets.
+                            final ExpenseStore expenses =
+                                context.read<ExpenseStore>();
+                            final ExpenseTransaction txn = ExpenseTransaction(
+                              id: IdGen.next('txn'),
+                              type: TransactionType.expense,
+                              amountPaise: m.costPaise,
+                              description: '${m.name} renewal',
+                              categoryId: m.category == MembershipCategory.health
+                                  ? expenses.medicineCategoryId
+                                  : expenses.categories.last.id,
+                              date: now,
+                              note: 'Logged from Memberships',
+                            );
+                            expenses.add(txn);
+                            m.linkedExpenseId = txn.id;
                             showSnack(
                                 context,
                                 'Renewed — expiry moved to '
-                                '${fmtShortDate.format(m.expiryDate)}');
+                                '${fmtShortDate.format(m.expiryDate)} · logged to Expenses');
                           },
                           icon: const Icon(Icons.check, size: 18),
                           label: const Text('Mark as renewed'),

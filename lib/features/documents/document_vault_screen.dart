@@ -14,7 +14,6 @@ import '../../core/widgets/module_header.dart';
 import '../../data/models/commitments.dart';
 import '../../data/models/enums.dart';
 import '../../data/stores/commitments_store.dart';
-import '../../data/stores/settings_store.dart';
 import 'add_document_sheet.dart';
 
 /// PRD 9.1 — document vault with expiry alerts and a per-document lock

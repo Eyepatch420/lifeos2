@@ -25,6 +25,7 @@ import '../clock/clock_screen.dart';
 import '../documents/document_vault_screen.dart';
 import '../expenses/expenses_screen.dart';
 import '../health/report_detail_screen.dart';
+import '../health/wellness_log_screen.dart';
 import '../lists_notes/list_detail_screen.dart';
 import '../lists_notes/note_detail_screen.dart';
 import '../memberships/membership_detail_screen.dart';
@@ -196,6 +197,25 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             context,
             MaterialPageRoute<void>(
                 builder: (_) => ReportDetailScreen(reportId: r.id)),
+          ),
+        ));
+      }
+    }
+
+    for (final WellnessEntry w in health.wellnessEntries) {
+      if (_matches(w.mood.name) ||
+          _matches(w.symptomSummary) ||
+          _matches(w.note) ||
+          _matches(w.energy)) {
+        out.add(_Result(
+          title: 'Wellness · ${w.mood.name}',
+          subtitle: '${fmtShortDate.format(w.date)} · ${w.symptomSummary}',
+          module: 'Wellness',
+          icon: Icons.self_improvement_outlined,
+          color: AppColors.health,
+          onOpen: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(builder: (_) => const WellnessLogScreen()),
           ),
         ));
       }
