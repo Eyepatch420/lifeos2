@@ -139,6 +139,7 @@ class _ListsScreenState extends State<ListsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_lists',
         backgroundColor: AppColors.lists,
         tooltip: 'New list',
         onPressed: () => AddListSheet.show(context, initialType: _filter),

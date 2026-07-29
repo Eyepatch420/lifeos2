@@ -167,6 +167,7 @@ class _MembershipsScreenState extends State<MembershipsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_memberships',
         backgroundColor: AppColors.memberships,
         tooltip: 'Add membership',
         onPressed: () => AddMembershipSheet.show(context),

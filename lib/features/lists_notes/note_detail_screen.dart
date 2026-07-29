@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/entity_navigator.dart';
+import '../../core/services/entity_resolver.dart';
 import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -11,8 +13,6 @@ import '../../core/widgets/common.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/lists_notes.dart';
 import '../../data/stores/lists_notes_store.dart';
-import '../health/report_detail_screen.dart';
-import '../planner/planner_screen.dart';
 import 'note_editor_screen.dart';
 
 /// PRD 6.5 — full note view, including structured action items and links.
@@ -261,38 +261,11 @@ class NoteDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // PRD 6.5 AC1 — each link opens its EXACT target.
+                  // PRD 6.5 AC1 — each link opens its EXACT target. Labels
+                  // resolve live via EntityResolver so a rename of the
+                  // target is reflected without re-saving the link.
                   for (final NoteLink l in note.links)
-                    InkWell(
-                      onTap: () => _openLink(context, l),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          children: <Widget>[
-                            Icon(
-                              switch (l.module) {
-                                'Health' => Icons.monitor_heart_outlined,
-                                'Planner' => Icons.calendar_today_outlined,
-                                'Expenses' => Icons.currency_rupee,
-                                _ => Icons.link,
-                              },
-                              size: 16,
-                              color: AppColors.purple,
-                            ),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Text(
-                                l.label,
-                                style: TextStyle(
-                                    fontSize: 12.5, color: context.txtPrimary),
-                              ),
-                            ),
-                            Icon(Icons.chevron_right,
-                                size: 17, color: context.txtTertiary),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _linkRow(context, l),
                 ],
               ),
             ),
@@ -349,23 +322,54 @@ class NoteDetailScreen extends StatelessWidget {
     );
   }
 
-  void _openLink(BuildContext context, NoteLink l) {
-    if (l.module == 'Health' && l.targetId != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute<void>(
-            builder: (_) => ReportDetailScreen(reportId: l.targetId!)),
-      );
-      return;
-    }
-    if (l.module == 'Planner') {
-      Navigator.push(
-        context,
-        MaterialPageRoute<void>(builder: (_) => const PlannerScreen()),
-      );
-      return;
-    }
-    showSnack(context, 'Opening ${l.label}…');
+  /// A link row whose label and existence are resolved live from the
+  /// target's store — a rename propagates automatically, and a deleted
+  /// target shows "no longer exists" instead of opening a dead screen.
+  Widget _linkRow(BuildContext context, NoteLink l) {
+    final String? liveLabel =
+        l.ref == null ? null : EntityResolver.labelFor(context, l.ref!);
+    final bool broken = l.ref != null && liveLabel == null;
+    final String label = liveLabel ?? l.label;
+
+    return InkWell(
+      onTap: broken
+          ? () => showSnack(context, 'Linked item no longer exists')
+          : () => l.ref != null
+              ? EntityNavigator.open(context, l.ref!)
+              : showSnack(context, 'Opening ${l.label}…'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              broken
+                  ? Icons.link_off
+                  : switch (l.module) {
+                      'Health' => Icons.monitor_heart_outlined,
+                      'Planner' => Icons.calendar_today_outlined,
+                      'Expenses' => Icons.currency_rupee,
+                      _ => Icons.link,
+                    },
+              size: 16,
+              color: broken ? context.txtTertiary : AppColors.purple,
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                broken ? 'Linked item no longer exists' : label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: broken ? context.txtTertiary : context.txtPrimary,
+                  fontStyle: broken ? FontStyle.italic : FontStyle.normal,
+                ),
+              ),
+            ),
+            if (!broken)
+              Icon(Icons.chevron_right, size: 17, color: context.txtTertiary),
+          ],
+        ),
+      ),
+    );
   }
 }
 

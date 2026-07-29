@@ -10,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/highlight_row.dart';
 import '../../core/widgets/module_header.dart';
 import '../../data/models/commitments.dart';
 import '../../data/models/enums.dart';
@@ -19,7 +20,11 @@ import 'add_document_sheet.dart';
 /// PRD 9.1 — document vault with expiry alerts and a per-document lock
 /// (closing PRD Gap 2).
 class DocumentVaultScreen extends StatefulWidget {
-  const DocumentVaultScreen({super.key});
+  const DocumentVaultScreen({super.key, this.highlightId});
+
+  /// A document id to flash/scroll to on open — set when arriving from
+  /// search or a notification tap.
+  final String? highlightId;
 
   @override
   State<DocumentVaultScreen> createState() => _DocumentVaultScreenState();
@@ -152,7 +157,12 @@ class _DocumentVaultScreenState extends State<DocumentVaultScreen> {
                               for (int i = 0;
                                   i < grouped[c]!.length;
                                   i++) ...<Widget>[
-                                _row(context, store, grouped[c]![i], now),
+                                HighlightRow(
+                                  highlighted: grouped[c]![i].id ==
+                                      widget.highlightId,
+                                  child: _row(
+                                      context, store, grouped[c]![i], now),
+                                ),
                                 if (i != grouped[c]!.length - 1)
                                   Divider(height: 1, color: context.hairline),
                               ],
@@ -183,6 +193,7 @@ class _DocumentVaultScreenState extends State<DocumentVaultScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_documents',
         backgroundColor: AppColors.documents,
         tooltip: 'Add document',
         onPressed: () => AddDocumentSheet.show(context),
@@ -312,6 +323,7 @@ class _DocumentVaultScreenState extends State<DocumentVaultScreen> {
     if (d.locked && !_unlocked.contains(d.id)) {
       final bool ok = await _authenticate(context, d);
       if (!ok) return;
+      if (!mounted) return;
       setState(() => _unlocked.add(d.id));
     }
     if (!context.mounted) return;

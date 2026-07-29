@@ -719,7 +719,7 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
         onTap: () async {
           final TimeOfDay? picked =
               await showTimePicker(context: context, initialTime: _time);
-          if (picked != null) setState(() => _time = picked);
+          if (picked != null && mounted) setState(() => _time = picked);
         },
         borderRadius: BorderRadius.circular(9),
         child: InputDecorator(

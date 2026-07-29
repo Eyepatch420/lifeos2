@@ -365,14 +365,14 @@ void main() {
 
   group('Reminders (PRD 2.1)', () {
     test('time-of-day bucketing, with 12:00 treated as Afternoon', () {
-      final ReminderStore store = ReminderStore();
+      final ReminderStore store = ReminderStore()..seed();
       final dynamic r = store.all.first;
       expect(<String>['Morning', 'Afternoon', 'Evening'].contains(r.bucket),
           isTrue);
     });
 
     test('AC1: marking done is idempotent for the same occurrence', () {
-      final ReminderStore store = ReminderStore();
+      final ReminderStore store = ReminderStore()..seed();
       final DateTime today = DateTime.now();
       final dynamic r = store.all.firstWhere((dynamic x) => x.enabled == true);
       store.markDone(r, today);

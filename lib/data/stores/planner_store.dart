@@ -9,7 +9,7 @@ import 'persistence.dart';
 /// Owns habits, events, appointments and tasks (PRD 3.x).
 class PlannerStore extends ChangeNotifier {
   PlannerStore() {
-    if (!_load()) _seed();
+    _load();
   }
 
   static const String _key = 'planner';
@@ -46,6 +46,13 @@ class PlannerStore extends ChangeNotifier {
   Habit? habitById(String id) {
     for (final Habit h in _habits) {
       if (h.id == id) return h;
+    }
+    return null;
+  }
+
+  PlannerEvent? eventById(String id) {
+    for (final PlannerEvent e in _events) {
+      if (e.id == id) return e;
     }
     return null;
   }
@@ -180,9 +187,7 @@ class PlannerStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---- seed -------------------------------------------------------------
-
-  void _seed() {
+  void seed() {
     final DateTime now = DateTime.now();
     final DateTime today = dayKey(now);
 

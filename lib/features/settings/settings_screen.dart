@@ -529,7 +529,24 @@ class SettingsScreen extends StatelessWidget {
         TextEditingController(text: s.age?.toString() ?? '');
     final TextEditingController weight =
         TextEditingController(text: s.weightKg?.toString() ?? '');
+    try {
+      await _showEditProfileDialog(context, s, name, email, age, weight);
+    } finally {
+      name.dispose();
+      email.dispose();
+      age.dispose();
+      weight.dispose();
+    }
+  }
 
+  Future<void> _showEditProfileDialog(
+    BuildContext context,
+    SettingsStore s,
+    TextEditingController name,
+    TextEditingController email,
+    TextEditingController age,
+    TextEditingController weight,
+  ) async {
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
@@ -668,7 +685,7 @@ class SettingsScreen extends StatelessWidget {
               // Writes a real file and opens the share sheet — this button
               // previously only showed a snackbar and exported nothing.
               final String path = await ShareService.shareAsFile(
-                BackupService.buildBackup(),
+                await BackupService.buildBackup(),
                 BackupService.suggestedFileName(),
                 subject: 'LifeOS backup — $total records',
               );
@@ -737,7 +754,7 @@ class SettingsScreen extends StatelessWidget {
 
     if (action == 'backup') {
       final String path = await ShareService.shareAsFile(
-        BackupService.buildBackup(),
+        await BackupService.buildBackup(),
         BackupService.suggestedFileName(),
         subject: 'LifeOS backup',
       );
@@ -747,17 +764,59 @@ class SettingsScreen extends StatelessWidget {
       return;
     }
 
-    // Restore is destructive — confirm before touching anything.
+    // Restore mode: overwrite (default, destructive) or merge (union by id).
+    final RestoreMode? mode = await showModalBottomSheet<RestoreMode>(
+      context: context,
+      builder: (BuildContext sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('How should the backup be applied?',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_sweep_outlined),
+              title: const Text('Replace everything'),
+              subtitle: const Text(
+                  "Deletes what's on this device, restores exactly the backup",
+                  style: TextStyle(fontSize: 12)),
+              onTap: () => Navigator.pop(sheet, RestoreMode.overwrite),
+            ),
+            ListTile(
+              leading: const Icon(Icons.merge_outlined),
+              title: const Text('Merge with what\'s here'),
+              subtitle: const Text(
+                  'Keeps existing records, adds/overwrites by matching item',
+                  style: TextStyle(fontSize: 12)),
+              onTap: () => Navigator.pop(sheet, RestoreMode.merge),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (mode == null || !context.mounted) return;
+
+    // Restore is destructive (at least in overwrite mode) — confirm first.
     final bool ok = await confirmDialog(
       context,
       title: 'Restore from a backup?',
-      message: 'Everything currently in LifeOS on this device will be '
-          'replaced by the contents of the backup file. This cannot be undone.',
+      message: mode == RestoreMode.overwrite
+          ? 'Everything currently in LifeOS on this device will be '
+              'replaced by the contents of the backup file. This cannot be undone.'
+          : 'Records from the backup will be added to what\'s already on this '
+              'device. Matching items (same id) will be overwritten by the backup.',
       confirmLabel: 'Choose file',
     );
     if (!ok || !context.mounted) return;
 
-    final RestoreResult result = await BackupService.restoreFromFile();
+    final RestoreResult result = await BackupService.restoreFromFile(mode: mode);
     if (!context.mounted || result.cancelled) return;
 
     if (!result.isSuccess) {

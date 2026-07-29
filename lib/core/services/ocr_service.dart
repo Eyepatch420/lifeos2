@@ -29,7 +29,8 @@ class OcrService {
   /// Largest currency-looking number on a receipt — that is almost always the
   /// total rather than a line item.
   static double? parseAmount(String text) {
-    final RegExp re = RegExp(r'(?:₹|rs\.?|inr)?\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)',
+    final RegExp re = RegExp(
+        r'(?:₹|rs\.?|inr)?\s*(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)',
         caseSensitive: false);
     double? best;
     for (final RegExpMatch m in re.allMatches(text)) {

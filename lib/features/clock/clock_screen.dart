@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/alert_type_selector.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/highlight_row.dart';
 import '../../core/widgets/module_header.dart';
 import '../../data/models/alarm.dart';
 import '../../data/models/enums.dart';
@@ -22,7 +23,11 @@ import '../../data/stores/settings_store.dart';
 /// in this State object (not in a store), so switching to the Alarm section
 /// and back does NOT reset a running stopwatch.
 class ClockScreen extends StatefulWidget {
-  const ClockScreen({super.key});
+  const ClockScreen({super.key, this.highlightId});
+
+  /// An alarm id to flash/scroll to on open — set when arriving from search
+  /// or a notification tap.
+  final String? highlightId;
 
   @override
   State<ClockScreen> createState() => _ClockScreenState();
@@ -155,6 +160,7 @@ class _ClockScreenState extends State<ClockScreen> {
       ),
       floatingActionButton: _section == 0
           ? FloatingActionButton(
+              heroTag: 'fab_clock',
               backgroundColor: AppColors.clock,
               tooltip: 'Add alarm',
               onPressed: () => _openAlarmSheet(context),
@@ -203,7 +209,11 @@ class _ClockScreenState extends State<ClockScreen> {
           child: Column(
             children: <Widget>[
               for (int i = 0; i < alarms.length; i++) ...<Widget>[
-                _alarmRow(context, store, alarms[i], alarms[i].id == next?.id),
+                HighlightRow(
+                  highlighted: alarms[i].id == widget.highlightId,
+                  child: _alarmRow(
+                      context, store, alarms[i], alarms[i].id == next?.id),
+                ),
                 if (i != alarms.length - 1)
                   Divider(height: 1, color: context.hairline),
               ],
@@ -703,7 +713,7 @@ class _AlarmSheetState extends State<_AlarmSheet> {
             onTap: () async {
               final TimeOfDay? picked =
                   await showTimePicker(context: context, initialTime: _time);
-              if (picked != null) setState(() => _time = picked);
+              if (picked != null && mounted) setState(() => _time = picked);
             },
             borderRadius: BorderRadius.circular(12),
             child: Padding(

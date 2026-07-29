@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Pre-API-31 fallback for the same rule as data_extraction_rules.xml: exclude
+  the shared_prefs blob (all app stores) from Android's legacy full-backup
+  agent so it doesn't reappear after uninstall/reinstall.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="."/>
+</full-backup-content>

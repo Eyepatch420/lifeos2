@@ -117,6 +117,7 @@ class _AddDocumentSheetState extends State<AddDocumentSheet> {
         destructive: false,
       );
       if (!ok) return;
+      if (!mounted) return;
     }
 
     final CommitmentsStore store = context.read<CommitmentsStore>();

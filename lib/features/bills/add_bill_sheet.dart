@@ -278,7 +278,7 @@ class _AddBillSheetState extends State<AddBillSheet> {
                     firstDate: DateTime(2000),
                     lastDate: DateTime(2100),
                   );
-                  if (p != null) {
+                  if (p != null && mounted) {
                     setState(() {
                       _dueDate = p;
                       _dayOfMonth = p.day;

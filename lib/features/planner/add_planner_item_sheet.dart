@@ -314,7 +314,7 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
                 onTap: () async {
                   final TimeOfDay? p = await showTimePicker(
                       context: context, initialTime: _preferredTime);
-                  if (p != null) setState(() => _preferredTime = p);
+                  if (p != null && mounted) setState(() => _preferredTime = p);
                 },
                 child: InputDecorator(
                   decoration: const InputDecoration(),
@@ -371,7 +371,7 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
                         DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
                   );
-                  if (p != null) setState(() => _date = p);
+                  if (p != null && mounted) setState(() => _date = p);
                 },
                 child: InputDecorator(
                   decoration: const InputDecoration(),
@@ -398,7 +398,7 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
                 onTap: () async {
                   final TimeOfDay? p = await showTimePicker(
                       context: context, initialTime: _startTime);
-                  if (p != null) setState(() => _startTime = p);
+                  if (p != null && mounted) setState(() => _startTime = p);
                 },
                 child: InputDecorator(
                   decoration: const InputDecoration(),

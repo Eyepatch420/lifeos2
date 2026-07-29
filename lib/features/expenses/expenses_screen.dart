@@ -6,23 +6,29 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/highlight_row.dart';
 import '../../core/widgets/module_header.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/expense.dart';
 import '../../data/stores/expense_store.dart';
+import '../../data/stores/id_gen.dart';
 import 'add_transaction_sheet.dart';
 
 /// PRD 4.1-4.3 — Expenses with Overview / Transactions / Budgets / Analytics,
 /// all four sharing one selected-month context (4.1 FR5).
 class ExpensesScreen extends StatefulWidget {
-  const ExpensesScreen({super.key});
+  const ExpensesScreen({super.key, this.highlightId});
+
+  /// A transaction id to flash/scroll to on open — set when arriving from
+  /// search or a notification tap.
+  final String? highlightId;
 
   @override
   State<ExpensesScreen> createState() => _ExpensesScreenState();
 }
 
 class _ExpensesScreenState extends State<ExpensesScreen> {
-  int _tab = 0;
+  late int _tab = widget.highlightId == null ? 0 : 1;
   static const List<String> _tabs = <String>[
     'Overview',
     'Transactions',
@@ -73,6 +79,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_expenses',
         backgroundColor: AppColors.expenses,
         tooltip: 'Add transaction',
         onPressed: () => AddTransactionSheet.show(context),
@@ -280,7 +287,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           child: Column(
             children: <Widget>[
               for (int i = 0; i < recent.length; i++) ...<Widget>[
-                _txnRow(context, store, recent[i]),
+                HighlightRow(
+                  highlighted: recent[i].id == widget.highlightId,
+                  child: _txnRow(context, store, recent[i]),
+                ),
                 if (i != recent.length - 1)
                   Divider(height: 1, color: context.hairline),
               ],
@@ -313,7 +323,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           child: Column(
             children: <Widget>[
               for (int i = 0; i < txns.length; i++) ...<Widget>[
-                _txnRow(context, store, txns[i]),
+                HighlightRow(
+                  highlighted: txns[i].id == widget.highlightId,
+                  child: _txnRow(context, store, txns[i]),
+                ),
                 if (i != txns.length - 1)
                   Divider(height: 1, color: context.hairline),
               ],
@@ -869,28 +882,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       BuildContext context, ExpenseStore store, BudgetCategory c) async {
     final TextEditingController ctl =
         TextEditingController(text: (c.limit ?? 0).toStringAsFixed(0));
-    final String? v = await showDialog<String>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text('${c.name} monthly budget'),
-        content: TextField(
-          controller: ctl,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(prefixText: '₹ '),
+    try {
+      final String? v = await showDialog<String>(
+        context: context,
+        builder: (BuildContext ctx) => AlertDialog(
+          title: Text('${c.name} monthly budget'),
+          content: TextField(
+            controller: ctl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(prefixText: '₹ '),
+          ),
+          actions: <Widget>[
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, ctl.text),
+                child: const Text('Save')),
+          ],
         ),
-        actions: <Widget>[
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, ctl.text),
-              child: const Text('Save')),
-        ],
-      ),
-    );
-    if (v == null) return;
-    final double? parsed = double.tryParse(v.trim());
-    store.setCategoryLimit(
-        c.id, parsed == null || parsed <= 0 ? null : (parsed * 100).round());
+      );
+      if (v == null) return;
+      final double? parsed = double.tryParse(v.trim());
+      store.setCategoryLimit(
+          c.id, parsed == null || parsed <= 0 ? null : (parsed * 100).round());
+    } finally {
+      ctl.dispose();
+    }
   }
 
   /// Icons offered when creating a category — previously every new category
@@ -973,6 +991,20 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Future<void> _addCategory(BuildContext context, ExpenseStore store) async {
     final TextEditingController name = TextEditingController();
     final TextEditingController limit = TextEditingController();
+    try {
+      await _addCategoryDialog(context, store, name, limit);
+    } finally {
+      name.dispose();
+      limit.dispose();
+    }
+  }
+
+  Future<void> _addCategoryDialog(
+    BuildContext context,
+    ExpenseStore store,
+    TextEditingController name,
+    TextEditingController limit,
+  ) async {
     int icon = _categoryIcons.first.codePoint;
     int colour = AppColors
         .picker[store.categories.length % AppColors.picker.length]
@@ -1075,7 +1107,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     if (ok != true || name.text.trim().isEmpty) return;
     final double? lim = double.tryParse(limit.text.trim());
     store.addCategory(BudgetCategory(
-      id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
+      id: IdGen.next('cat'),
       name: name.text.trim(),
       colorValue: colour,
       iconCodePoint: icon,

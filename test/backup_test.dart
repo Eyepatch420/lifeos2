@@ -18,37 +18,43 @@ void main() {
     await Persistence.reset();
   });
 
-  test('a backup taken on a fresh install contains every module', () {
+  test('a backup taken on a fresh install contains every module', () async {
     // Mirrors main(): construct every store, then flush once.
-    SettingsStore()..flush();
-    ReminderStore()..flush();
-    PlannerStore()..flush();
-    AlarmStore()..flush();
-    ExpenseStore()..flush();
-    HealthStore()..flush();
-    CommitmentsStore()..flush();
-    ListsNotesStore()..flush();
+    SettingsStore().flush();
+    ReminderStore().flush();
+    PlannerStore().flush();
+    AlarmStore().flush();
+    ExpenseStore().flush();
+    HealthStore().flush();
+    CommitmentsStore().flush();
+    ListsNotesStore().flush();
 
     final Map<String, dynamic> parsed =
-        jsonDecode(BackupService.buildBackup()) as Map<String, dynamic>;
+        jsonDecode(await BackupService.buildBackup()) as Map<String, dynamic>;
     final Map<String, dynamic> data = parsed['data'] as Map<String, dynamic>;
 
     for (final String key in <String>[
-      'settings', 'reminders', 'planner', 'alarms',
-      'expenses', 'health', 'commitments', 'lists_notes',
+      'settings',
+      'reminders',
+      'planner',
+      'alarms',
+      'expenses',
+      'health',
+      'commitments',
+      'lists_notes',
     ]) {
       expect(data.containsKey(key), isTrue, reason: '$key missing from backup');
     }
     expect(parsed['app'], 'LifeOS');
     expect(parsed['formatVersion'], BackupService.formatVersion);
+    expect(parsed.containsKey('appVersion'), isTrue);
   });
 
-  test('a backup round-trips back into storage', () {
-    ReminderStore()..flush();
-    final String backup = BackupService.buildBackup();
-    final Map<String, dynamic> data =
-        (jsonDecode(backup) as Map<String, dynamic>)['data']
-            as Map<String, dynamic>;
+  test('a backup round-trips back into storage', () async {
+    ReminderStore()..seed()..flush();
+    final String backup = await BackupService.buildBackup();
+    final Map<String, dynamic> data = (jsonDecode(backup)
+        as Map<String, dynamic>)['data'] as Map<String, dynamic>;
 
     // Wipe, then re-apply exactly what restoreFromFile would write.
     Persistence.save('reminders', <String, dynamic>{});

@@ -346,7 +346,28 @@ class ReportDetailScreen extends StatelessWidget {
         TextEditingController(text: _trim(m.normalLow));
     final TextEditingController high =
         TextEditingController(text: _trim(m.normalHigh));
+    try {
+      await _correctMarkerDialog(
+          context, health, report, index, m, value, unit, low, high);
+    } finally {
+      value.dispose();
+      unit.dispose();
+      low.dispose();
+      high.dispose();
+    }
+  }
 
+  Future<void> _correctMarkerDialog(
+    BuildContext context,
+    HealthStore health,
+    LabReport report,
+    int index,
+    LabMarker m,
+    TextEditingController value,
+    TextEditingController unit,
+    TextEditingController low,
+    TextEditingController high,
+  ) async {
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(

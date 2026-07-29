@@ -315,7 +315,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 firstDate: DateTime(2015),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
               );
-              if (p != null) {
+              if (p != null && mounted) {
                 setState(() => _date =
                     DateTime(p.year, p.month, p.day, _date.hour, _date.minute));
               }
@@ -558,7 +558,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
         ],
       ),
     );
-    if (v != null) setState(() => _splitWays = v);
+    if (v != null && mounted) setState(() => _splitWays = v);
   }
 
   Future<void> _promptTags() async {
@@ -610,6 +610,6 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
         ],
       ),
     );
-    if (v != null) setState(() => _note.text = v);
+    if (v != null && mounted) setState(() => _note.text = v);
   }
 }

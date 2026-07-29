@@ -431,7 +431,7 @@ class _AddMembershipSheetState extends State<AddMembershipSheet> {
         ],
       ),
     );
-    if (v != null) setState(() => _note.text = v);
+    if (v != null && mounted) setState(() => _note.text = v);
   }
 
   /// Photographs the physical card and stores it with the membership.

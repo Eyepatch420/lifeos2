@@ -88,6 +88,13 @@ class ExpenseStore extends ChangeNotifier {
   List<ExpenseTransaction> get allTransactions =>
       List<ExpenseTransaction>.unmodifiable(_txns);
 
+  ExpenseTransaction? transactionById(String id) {
+    for (final ExpenseTransaction t in _txns) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
   List<ExpenseTransaction> transactionsIn(DateTime month) {
     final List<ExpenseTransaction> list = _txns
         .where((ExpenseTransaction t) =>
@@ -337,61 +344,5 @@ class ExpenseStore extends ChangeNotifier {
           iconCodePoint: Icons.more_horiz.codePoint,
           limitPaise: 200000),
     ]);
-
-    final DateTime now = DateTime.now();
-    final DateTime m = startOfMonth(now);
-
-    void tx(String id, TransactionType type, int paise, String desc, String cat,
-        int dayOfMonth, PaymentMethod pm,
-        {int split = 1, int monthOffset = 0}) {
-      final DateTime base = DateTime(m.year, m.month + monthOffset, 1);
-      final int maxDay = DateTime(base.year, base.month + 1, 0).day;
-      _txns.add(ExpenseTransaction(
-        id: id,
-        type: type,
-        amountPaise: paise,
-        description: desc,
-        categoryId: cat,
-        date: DateTime(base.year, base.month,
-            dayOfMonth > maxDay ? maxDay : dayOfMonth, 9, 14),
-        method: pm,
-        splitWays: split,
-      ));
-    }
-
-    // Current month
-    tx('t1', TransactionType.income, 6500000, 'Salary credit', 'cat_income', 1,
-        PaymentMethod.netBanking);
-    tx('t2', TransactionType.expense, 900000, 'Rent', 'cat_housing', 2,
-        PaymentMethod.netBanking);
-    tx('t3', TransactionType.expense, 38000, 'Starbucks', 'cat_food',
-        now.day, PaymentMethod.card);
-    tx('t4', TransactionType.expense, 22000, 'Ola cab', 'cat_transport',
-        now.day > 1 ? now.day - 1 : 1, PaymentMethod.upi);
-    tx('t5', TransactionType.expense, 80000, 'Dr. Mehta consultation',
-        'cat_health', 3, PaymentMethod.upi);
-    tx('t6', TransactionType.expense, 160000, 'Dr. Mehta', 'cat_health', 8,
-        PaymentMethod.upi);
-    tx('t7', TransactionType.expense, 220000, 'Big Basket', 'cat_food', 5,
-        PaymentMethod.card);
-    tx('t8', TransactionType.expense, 160000, 'Transport top-up',
-        'cat_transport', 6, PaymentMethod.upi);
-    tx('t9', TransactionType.expense, 110000, 'Household items', 'cat_other', 7,
-        PaymentMethod.cash);
-    tx('t10', TransactionType.expense, 240000, 'Team dinner (split 4)',
-        'cat_food', 9, PaymentMethod.card, split: 4);
-
-    // Prior months for the 6-month trend
-    for (int i = 1; i <= 5; i++) {
-      final int base = 1400000 + (i * 90000);
-      tx('p${i}a', TransactionType.expense, 900000, 'Rent', 'cat_housing', 2,
-          PaymentMethod.netBanking, monthOffset: -i);
-      tx('p${i}b', TransactionType.expense, base ~/ 3, 'Groceries', 'cat_food',
-          10, PaymentMethod.card, monthOffset: -i);
-      tx('p${i}c', TransactionType.expense, base ~/ 6, 'Fuel', 'cat_transport',
-          15, PaymentMethod.upi, monthOffset: -i);
-      tx('p${i}d', TransactionType.income, 6500000, 'Salary credit',
-          'cat_income', 1, PaymentMethod.netBanking, monthOffset: -i);
-    }
   }
 }

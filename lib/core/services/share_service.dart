@@ -13,8 +13,7 @@ class ShareService {
   }
 
   static Future<void> shareText(String text, {String? subject}) async {
-    await SharePlus.instance
-        .share(ShareParams(text: text, subject: subject));
+    await SharePlus.instance.share(ShareParams(text: text, subject: subject));
   }
 
   /// Writes [content] to a file in the app documents dir and opens the share

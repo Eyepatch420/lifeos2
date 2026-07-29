@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../data/stores/id_gen.dart';
+
 /// Picks real files/photos and copies them into app storage so the reference
 /// survives even if the original is moved or the cache is cleared.
 class AttachmentService {
@@ -16,8 +18,7 @@ class AttachmentService {
     final Directory dir = await getApplicationDocumentsDirectory();
     final Directory attachments = Directory('${dir.path}/attachments');
     if (!attachments.existsSync()) attachments.createSync(recursive: true);
-    final String name =
-        '${DateTime.now().millisecondsSinceEpoch}_$suffix';
+    final String name = '${IdGen.next('att')}_$suffix';
     final File dest = File('${attachments.path}/$name');
     await source.copy(dest.path);
     return dest.path;
@@ -46,9 +47,13 @@ class AttachmentService {
     return dot < 0 ? '' : path.substring(dot + 1).toLowerCase();
   }
 
-  static bool isImage(String path) =>
-      const <String>{'jpg', 'jpeg', 'png', 'webp', 'heic'}
-          .contains(extensionOf(path));
+  static bool isImage(String path) => const <String>{
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+        'heic'
+      }.contains(extensionOf(path));
 
   static Future<void> delete(String path) async {
     try {

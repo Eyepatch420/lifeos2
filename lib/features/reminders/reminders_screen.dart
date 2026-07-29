@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/alert_type_selector.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/highlight_row.dart';
 import '../../core/widgets/module_header.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/reminder.dart';
@@ -17,7 +18,11 @@ import 'water_card.dart';
 /// PRD 2.1 — Reminders main list, grouped by time of day, with quick logging,
 /// swipe actions (2.4) and the missed indicator (AC3).
 class RemindersScreen extends StatefulWidget {
-  const RemindersScreen({super.key});
+  const RemindersScreen({super.key, this.highlightId});
+
+  /// A reminder id to flash/scroll to on open — set when arriving from
+  /// search or a notification tap.
+  final String? highlightId;
 
   @override
   State<RemindersScreen> createState() => _RemindersScreenState();
@@ -126,6 +131,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_reminders',
         backgroundColor: AppColors.reminders,
         onPressed: () => AddReminderSheet.show(context, initialType: _filter),
         tooltip: 'Add reminder',
@@ -151,10 +157,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
           child: Column(
             children: <Widget>[
               for (int i = 0; i < items.length; i++) ...<Widget>[
-                _ReminderRow(
-                  reminder: items[i],
-                  date: _date,
-                  now: now,
+                HighlightRow(
+                  highlighted: items[i].id == widget.highlightId,
+                  child: _ReminderRow(
+                    reminder: items[i],
+                    date: _date,
+                    now: now,
+                  ),
                 ),
                 if (i != items.length - 1)
                   Divider(height: 1, color: context.hairline),
@@ -174,7 +183,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null && mounted) setState(() => _date = picked);
   }
 
   void _openDefaults() {

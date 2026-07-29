@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/highlight_row.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/habit.dart';
 import '../../data/models/reminder.dart';
@@ -19,7 +20,11 @@ import 'add_planner_item_sheet.dart';
 /// PRD 3.1 / 3.2 — Planner with Plan (agenda), Day (timeline) and Week views.
 /// The Week view closes PRD Gap 5, which the mockups left undesigned.
 class PlannerScreen extends StatefulWidget {
-  const PlannerScreen({super.key});
+  const PlannerScreen({super.key, this.highlightId});
+
+  /// A habit or event id to flash/scroll to on open — set when arriving
+  /// from search or a notification tap.
+  final String? highlightId;
 
   @override
   State<PlannerScreen> createState() => _PlannerScreenState();
@@ -62,6 +67,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_planner',
         backgroundColor: AppColors.planner,
         tooltip: 'Add to planner',
         onPressed: () =>
@@ -124,7 +130,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                         lastDate:
                             DateTime.now().add(const Duration(days: 365 * 2)),
                       );
-                      if (p != null) setState(() => _selected = p);
+                      if (p != null && mounted) setState(() => _selected = p);
                     },
                   ),
                 ],
@@ -283,7 +289,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
             child: Column(
               children: <Widget>[
                 for (int i = 0; i < habits.length; i++) ...<Widget>[
-                  _habitRow(context, planner, habits[i]),
+                  HighlightRow(
+                    highlighted: habits[i].id == widget.highlightId,
+                    child: _habitRow(context, planner, habits[i]),
+                  ),
                   if (i != habits.length - 1)
                     Divider(height: 1, color: context.hairline),
                 ],
@@ -307,7 +316,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
             child: Column(
               children: <Widget>[
                 for (int i = 0; i < todays.length; i++) ...<Widget>[
-                  _eventRow(context, planner, todays[i]),
+                  HighlightRow(
+                    highlighted: todays[i].id == widget.highlightId,
+                    child: _eventRow(context, planner, todays[i]),
+                  ),
                   if (i != todays.length - 1)
                     Divider(height: 1, color: context.hairline),
                 ],

@@ -47,7 +47,7 @@ void main() {
 
   group('mis-scanned values can be corrected', () {
     test('updateMarker replaces the value in place', () {
-      final HealthStore store = HealthStore();
+      final HealthStore store = HealthStore()..seed();
       final LabReport report = store.reports.first;
       final LabMarker original = report.markers.first;
 
@@ -70,7 +70,7 @@ void main() {
     });
 
     test('an out-of-range index is ignored rather than crashing', () {
-      final HealthStore store = HealthStore();
+      final HealthStore store = HealthStore()..seed();
       final LabReport report = store.reports.first;
       final int before = report.markers.length;
       store.updateMarker(report, 99,
@@ -81,7 +81,7 @@ void main() {
 
   group('reports can be edited and removed', () {
     test('updateReport swaps the stored report', () {
-      final HealthStore store = HealthStore();
+      final HealthStore store = HealthStore()..seed();
       final LabReport original = store.reports.first;
       store.updateReport(LabReport(
         id: original.id,
@@ -94,7 +94,7 @@ void main() {
     });
 
     test('deleteReport removes it', () {
-      final HealthStore store = HealthStore();
+      final HealthStore store = HealthStore()..seed();
       final int before = store.reportCount;
       store.deleteReport(store.reports.first.id);
       expect(store.reportCount, before - 1);
@@ -103,7 +103,7 @@ void main() {
 
   group('list sharing renders real text', () {
     test('listAsPlainText includes every item and its state', () {
-      final ListsNotesStore store = ListsNotesStore();
+      final ListsNotesStore store = ListsNotesStore()..seed();
       final TaskList list = store.lists.first;
       final String text = store.listAsPlainText(list);
 
@@ -117,7 +117,7 @@ void main() {
 
   group('list item edits go through the store', () {
     test('updateItem changes the text and notifies', () {
-      final ListsNotesStore store = ListsNotesStore();
+      final ListsNotesStore store = ListsNotesStore()..seed();
       final TaskList list = store.lists.first;
       final ChecklistItem item = list.allItems.first;
 

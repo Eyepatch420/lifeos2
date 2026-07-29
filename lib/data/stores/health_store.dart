@@ -8,7 +8,7 @@ import 'persistence.dart';
 /// Owns lab reports, vitals and the wellness log (PRD 5.x).
 class HealthStore extends ChangeNotifier {
   HealthStore() {
-    if (!_load()) _seed();
+    _load();
   }
 
   static const String _key = 'health';
@@ -285,9 +285,7 @@ class HealthStore extends ChangeNotifier {
     return b.toString();
   }
 
-  // ---- seed -------------------------------------------------------------
-
-  void _seed() {
+  void seed() {
     final DateTime now = DateTime.now();
 
     _reports.addAll(<LabReport>[

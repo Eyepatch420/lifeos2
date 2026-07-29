@@ -55,10 +55,10 @@ class SettingsStore extends ChangeNotifier {
     super.notifyListeners();
   }
 
-  String name = 'testuser';
-  String email = 'testuser@gmail.com';
-  int? age = 32;
-  double? weightKg = 74;
+  String name = '';
+  String email = '';
+  int? age;
+  double? weightKg;
 
   /// Defaults only pre-select in the Add flows; they never rewrite existing
   /// reminders (PRD 10.1 FR1 / AC1).

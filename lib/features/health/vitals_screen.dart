@@ -364,6 +364,21 @@ class VitalsScreen extends StatelessWidget {
       BuildContext context, HealthStore health, VitalKind kind) async {
     final TextEditingController v1 = TextEditingController();
     final TextEditingController v2 = TextEditingController();
+    try {
+      await _logVitalDialog(context, health, kind, v1, v2);
+    } finally {
+      v1.dispose();
+      v2.dispose();
+    }
+  }
+
+  Future<void> _logVitalDialog(
+    BuildContext context,
+    HealthStore health,
+    VitalKind kind,
+    TextEditingController v1,
+    TextEditingController v2,
+  ) async {
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(

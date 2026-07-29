@@ -48,3 +48,6 @@ app.*.map.json
 /build/
 .dart_tool/
 .packages
+
+# Claude Code artifacts
+.artifacts/

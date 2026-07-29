@@ -11,7 +11,7 @@ import 'persistence.dart';
 /// keeping its own copy, satisfying "Home mirrors the owning module".
 class ReminderStore extends ChangeNotifier {
   ReminderStore() {
-    if (!_load()) _seed();
+    _load();
   }
 
   static const String _key = 'reminders';
@@ -293,9 +293,7 @@ class ReminderStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---- seed ------------------------------------------------------------
-
-  void _seed() {
+  void seed() {
     final DateTime now = DateTime.now();
     Map<DateTime, CompletionStatus> history(int days, {List<int> miss = const <int>[]}) {
       final Map<DateTime, CompletionStatus> m = <DateTime, CompletionStatus>{};

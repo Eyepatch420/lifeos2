@@ -88,6 +88,7 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_list_detail',
         backgroundColor: list.color,
         tooltip: 'Add section',
         onPressed: () => _addSection(context, store, list),

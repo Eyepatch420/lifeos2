@@ -8,7 +8,7 @@ import 'id_gen.dart';
 /// Owns lists and notes (PRD 6.x).
 class ListsNotesStore extends ChangeNotifier {
   ListsNotesStore() {
-    if (!_load()) _seed();
+    _load();
   }
 
   static const String _key = 'lists_notes';
@@ -48,6 +48,19 @@ class ListsNotesStore extends ChangeNotifier {
 
   List<TaskList> get lists => List<TaskList>.unmodifiable(_lists);
   List<Note> get notes => List<Note>.unmodifiable(_notes);
+
+  /// Overall checked-item ratio across every list with at least one item.
+  /// Feeds [ScoreEngine] — see `score_engine.dart`.
+  double get checklistCompletionRate {
+    final int total = _lists.fold<int>(0, (int s, TaskList l) => s + l.total);
+    if (total == 0) return 1;
+    final int done =
+        _lists.fold<int>(0, (int s, TaskList l) => s + l.doneCount);
+    return done / total;
+  }
+
+  bool get hasChecklistItems =>
+      _lists.any((TaskList l) => l.total > 0);
 
   TaskList? listById(String id) {
     for (final TaskList l in _lists) {
@@ -203,9 +216,7 @@ class ListsNotesStore extends ChangeNotifier {
     return b.toString();
   }
 
-  // ---- seed -------------------------------------------------------------
-
-  void _seed() {
+  void seed() {
     _lists.addAll(<TaskList>[
       TaskList(
         id: 'list_morning',

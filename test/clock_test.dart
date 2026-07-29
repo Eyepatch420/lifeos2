@@ -95,20 +95,20 @@ void main() {
 
   group('AlarmStore', () {
     test('seeds with alarms and reports the enabled count', () {
-      final AlarmStore s = AlarmStore();
+      final AlarmStore s = AlarmStore()..seed();
       expect(s.all, isNotEmpty);
       expect(s.enabled.length, lessThanOrEqualTo(s.all.length));
     });
 
     test('alarms are listed in time order', () {
-      final AlarmStore s = AlarmStore();
+      final AlarmStore s = AlarmStore()..seed();
       final List<int> mins = s.all.map((Alarm a) => a.minutesOfDay).toList();
       final List<int> sorted = List<int>.from(mins)..sort();
       expect(mins, sorted);
     });
 
     test('nextAlarm returns the soonest ENABLED alarm', () {
-      final AlarmStore s = AlarmStore();
+      final AlarmStore s = AlarmStore()..seed();
       final Alarm? next = s.nextAlarm(mondayMorning);
       expect(next, isNotNull);
       expect(next!.enabled, isTrue);
@@ -186,7 +186,7 @@ void main() {
     });
 
     test('toggle flips the enabled flag', () {
-      final AlarmStore s = AlarmStore();
+      final AlarmStore s = AlarmStore()..seed();
       final Alarm a = s.all.first;
       final bool was = a.enabled;
       s.toggle(a);

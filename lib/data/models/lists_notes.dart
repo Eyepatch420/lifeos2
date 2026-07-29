@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'entity_ref.dart';
 import 'enums.dart';
 
 class ChecklistItem {
@@ -111,10 +112,33 @@ class TaskList {
 }
 
 class NoteLink {
-  NoteLink({required this.module, required this.label, this.targetId});
+  NoteLink({required this.module, required this.label, this.targetId, EntityRef? ref})
+      : ref = ref ?? _inferRef(module, targetId);
+
   final String module;
+
+  /// Fallback label shown only when [ref] can't resolve (e.g. a link created
+  /// before the entity-linking system existed, targeting a module with no
+  /// registered [EntityType]). Live links resolve their label from [ref]
+  /// instead, so a rename of the target is reflected automatically.
   final String label;
   final String? targetId;
+
+  /// Typed, id-based pointer used for live resolution. Null for links whose
+  /// module has no corresponding [EntityType] (nothing to migrate onto).
+  final EntityRef? ref;
+
+  static EntityRef? _inferRef(String module, String? targetId) {
+    if (targetId == null) return null;
+    final EntityType? type = switch (module) {
+      'Health' => EntityType.labReport,
+      'Planner' => EntityType.plannerEvent,
+      'Expenses' => EntityType.expenseTransaction,
+      'Reminders' => EntityType.reminder,
+      _ => null,
+    };
+    return type == null ? null : EntityRef(type, targetId);
+  }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'module': module,

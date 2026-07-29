@@ -10,7 +10,7 @@ import 'persistence.dart';
 /// together and stay consistent.
 class CommitmentsStore extends ChangeNotifier {
   CommitmentsStore() {
-    if (!_load()) _seed();
+    _load();
   }
 
   static const String _key = 'commitments';
@@ -74,6 +74,21 @@ class CommitmentsStore extends ChangeNotifier {
 
   double get totalAnnualCost => activeMemberships
       .fold<double>(0, (double s, Membership m) => s + m.annualCost);
+
+  /// Fraction of logged renewals that were actually paid (not missed), across
+  /// all active memberships with any renewal history. Feeds [ScoreEngine] —
+  /// see `score_engine.dart`.
+  double get renewalAdherence {
+    final List<RenewalEntry> entries = activeMemberships
+        .expand((Membership m) => m.history)
+        .toList();
+    if (entries.isEmpty) return 1;
+    final int paid = entries.where((RenewalEntry e) => e.paid).length;
+    return paid / entries.length;
+  }
+
+  bool get hasRenewalHistory =>
+      activeMemberships.any((Membership m) => m.history.isNotEmpty);
 
   void addMembership(Membership m) {
     _memberships.add(m);
@@ -151,6 +166,19 @@ class CommitmentsStore extends ChangeNotifier {
 
   double overdueTotal(DateTime now) => overdueBills(now)
       .fold<double>(0, (double s, Bill b) => s + b.amount);
+
+  /// Fraction of active, non-autopay bills that are currently NOT overdue.
+  /// Feeds [ScoreEngine] — see `score_engine.dart`.
+  double paymentAdherence(DateTime now) {
+    final List<Bill> tracked =
+        activeBills.where((Bill b) => !b.autoPay).toList();
+    if (tracked.isEmpty) return 1;
+    final int onTime =
+        tracked.where((Bill b) => !b.isOverdue(now)).length;
+    return onTime / tracked.length;
+  }
+
+  bool get hasBillsTracked => activeBills.isNotEmpty;
 
   void addBill(Bill b) {
     _bills.add(b);
@@ -255,9 +283,7 @@ class CommitmentsStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---- seed -------------------------------------------------------------
-
-  void _seed() {
+  void seed() {
     final DateTime now = DateTime.now();
     final DateTime today = dayKey(now);
 

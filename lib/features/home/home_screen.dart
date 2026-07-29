@@ -586,9 +586,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               icon: Icons.notifications_none,
               color: AppColors.info,
               label: 'Reminders',
-              sub: next == null
-                  ? 'Nothing pending'
-                  : 'Next: ${formatTimeOfDay(next.time)}',
+              sub: next != null
+                  ? 'Next: ${formatTimeOfDay(next.time)}'
+                  : due > 0
+                      ? '$due overdue'
+                      : 'Nothing pending',
               badge: due > 0 ? '$due due' : null,
               onTap: () => Navigator.push(
                   context,

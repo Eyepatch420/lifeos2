@@ -317,7 +317,7 @@ class _AddReportScreenState extends State<AddReportScreen> {
                         firstDate: DateTime(2015),
                         lastDate: DateTime.now(),
                       );
-                      if (p != null) setState(() => _date = p);
+                      if (p != null && mounted) setState(() => _date = p);
                     },
                     child: InputDecorator(
                       decoration: const InputDecoration(),

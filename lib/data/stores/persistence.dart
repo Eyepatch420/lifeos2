@@ -37,7 +37,9 @@ class Persistence {
     }
   }
 
-  static void save(String key, Map<String, dynamic> data) {
-    _prefs?.setString(key, jsonEncode(data));
+  /// Saves [data] under [key], stamping it with [version] (default 1) so a
+  /// later schema change can detect how old the blob is via [MigrationRunner].
+  static void save(String key, Map<String, dynamic> data, {int version = 1}) {
+    _prefs?.setString(key, jsonEncode(<String, dynamic>{...data, '_v': version}));
   }
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 31+ backup config. LifeOS ships its own export/import (BackupService) as
+  the supported way to move data between installs/devices, so the OS-level
+  shared_prefs blob (all app stores, via SharedPreferences) is excluded here
+  to avoid silently reappearing after a user-initiated uninstall/reinstall.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="."/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="."/>
+    </device-transfer>
+</data-extraction-rules>

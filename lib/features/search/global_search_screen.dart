@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/entity_navigator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
 import '../../data/models/alarm.dart';
 import '../../data/models/commitments.dart';
+import '../../data/models/entity_ref.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/expense.dart';
 import '../../data/models/habit.dart';
@@ -20,17 +22,9 @@ import '../../data/stores/health_store.dart';
 import '../../data/stores/lists_notes_store.dart';
 import '../../data/stores/planner_store.dart';
 import '../../data/stores/reminder_store.dart';
-import '../bills/bills_screen.dart';
-import '../clock/clock_screen.dart';
-import '../documents/document_vault_screen.dart';
-import '../expenses/expenses_screen.dart';
-import '../health/report_detail_screen.dart';
 import '../health/wellness_log_screen.dart';
 import '../lists_notes/list_detail_screen.dart';
 import '../lists_notes/note_detail_screen.dart';
-import '../memberships/membership_detail_screen.dart';
-import '../planner/planner_screen.dart';
-import '../reminders/reminders_screen.dart';
 
 class _Result {
   const _Result({
@@ -84,8 +78,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Reminders',
           icon: r.icon,
           color: r.color,
-          onOpen: () => Navigator.push(context,
-              MaterialPageRoute<void>(builder: (_) => const RemindersScreen())),
+          onOpen: () => EntityNavigator.open(
+              context, EntityRef(EntityType.reminder, r.id)),
         ));
       }
     }
@@ -99,8 +93,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Planner',
           icon: h.icon,
           color: h.color,
-          onOpen: () => Navigator.push(context,
-              MaterialPageRoute<void>(builder: (_) => const PlannerScreen())),
+          onOpen: () =>
+              EntityNavigator.open(context, EntityRef(EntityType.habit, h.id)),
         ));
       }
     }
@@ -113,8 +107,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Planner',
           icon: Icons.event_outlined,
           color: e.color,
-          onOpen: () => Navigator.push(context,
-              MaterialPageRoute<void>(builder: (_) => const PlannerScreen())),
+          onOpen: () => EntityNavigator.open(
+              context, EntityRef(EntityType.plannerEvent, e.id)),
         ));
       }
     }
@@ -133,10 +127,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           onOpen: () {
             // Land on the month the transaction belongs to, not "today".
             context.read<ExpenseStore>().setMonth(t.date);
-            Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const ExpensesScreen()),
-            );
+            EntityNavigator.open(
+                context, EntityRef(EntityType.expenseTransaction, t.id));
           },
         ));
       }
@@ -193,11 +185,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Health',
           icon: Icons.description_outlined,
           color: AppColors.health,
-          onOpen: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-                builder: (_) => ReportDetailScreen(reportId: r.id)),
-          ),
+          onOpen: () => EntityNavigator.open(
+              context, EntityRef(EntityType.labReport, r.id)),
         ));
       }
     }
@@ -234,10 +223,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Clock',
           icon: Icons.alarm,
           color: AppColors.clock,
-          onOpen: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(builder: (_) => const ClockScreen()),
-          ),
+          onOpen: () =>
+              EntityNavigator.open(context, EntityRef(EntityType.alarm, a.id)),
         ));
       }
     }
@@ -252,11 +239,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Memberships',
           icon: Icons.badge_outlined,
           color: AppColors.memberships,
-          onOpen: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-                builder: (_) => MembershipDetailScreen(id: m.id)),
-          ),
+          onOpen: () => EntityNavigator.open(
+              context, EntityRef(EntityType.membership, m.id)),
         ));
       }
     }
@@ -269,10 +253,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Bills',
           icon: Icons.receipt_long_outlined,
           color: AppColors.bills,
-          onOpen: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(builder: (_) => const BillsScreen()),
-          ),
+          onOpen: () =>
+              EntityNavigator.open(context, EntityRef(EntityType.bill, b.id)),
         ));
       }
     }
@@ -286,11 +268,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           module: 'Documents',
           icon: d.locked ? Icons.lock_outline : Icons.folder_outlined,
           color: AppColors.documents,
-          onOpen: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-                builder: (_) => const DocumentVaultScreen()),
-          ),
+          onOpen: () => EntityNavigator.open(
+              context, EntityRef(EntityType.storedDocument, d.id)),
         ));
       }
     }

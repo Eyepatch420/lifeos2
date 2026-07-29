@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/highlight_row.dart';
 import '../../core/widgets/module_header.dart';
 import '../../data/models/commitments.dart';
 import '../../data/models/enums.dart';
@@ -16,7 +17,11 @@ import 'add_bill_sheet.dart';
 
 /// PRD 8.1 — bills, subscriptions and EMIs with overdue always surfaced.
 class BillsScreen extends StatefulWidget {
-  const BillsScreen({super.key});
+  const BillsScreen({super.key, this.highlightId});
+
+  /// A bill id to flash/scroll to on open — set when arriving from search or
+  /// a notification tap, so the deep link lands on the exact record.
+  final String? highlightId;
 
   @override
   State<BillsScreen> createState() => _BillsScreenState();
@@ -118,7 +123,12 @@ class _BillsScreenState extends State<BillsScreen> {
                                 for (int i = 0;
                                     i < overdue.length;
                                     i++) ...<Widget>[
-                                  _billRow(context, store, overdue[i], now),
+                                  HighlightRow(
+                                    highlighted:
+                                        overdue[i].id == widget.highlightId,
+                                    child: _billRow(
+                                        context, store, overdue[i], now),
+                                  ),
                                   if (i != overdue.length - 1)
                                     Divider(height: 1, color: context.hairline),
                                 ],
@@ -136,7 +146,12 @@ class _BillsScreenState extends State<BillsScreen> {
                               for (int i = 0;
                                   i < dueWeek.length;
                                   i++) ...<Widget>[
-                                _billRow(context, store, dueWeek[i], now),
+                                HighlightRow(
+                                  highlighted:
+                                      dueWeek[i].id == widget.highlightId,
+                                  child: _billRow(
+                                      context, store, dueWeek[i], now),
+                                ),
                                 if (i != dueWeek.length - 1)
                                   Divider(height: 1, color: context.hairline),
                               ],
@@ -151,7 +166,12 @@ class _BillsScreenState extends State<BillsScreen> {
                           child: Column(
                             children: <Widget>[
                               for (int i = 0; i < emis.length; i++) ...<Widget>[
-                                _emiRow(context, store, emis[i], now),
+                                HighlightRow(
+                                  highlighted:
+                                      emis[i].id == widget.highlightId,
+                                  child:
+                                      _emiRow(context, store, emis[i], now),
+                                ),
                                 if (i != emis.length - 1)
                                   Divider(height: 1, color: context.hairline),
                               ],
@@ -166,7 +186,12 @@ class _BillsScreenState extends State<BillsScreen> {
                           child: Column(
                             children: <Widget>[
                               for (int i = 0; i < subs.length; i++) ...<Widget>[
-                                _subRow(context, store, subs[i], now),
+                                HighlightRow(
+                                  highlighted:
+                                      subs[i].id == widget.highlightId,
+                                  child:
+                                      _subRow(context, store, subs[i], now),
+                                ),
                                 if (i != subs.length - 1)
                                   Divider(height: 1, color: context.hairline),
                               ],
@@ -186,7 +211,12 @@ class _BillsScreenState extends State<BillsScreen> {
                               for (int i = 0;
                                   i < shown.length;
                                   i++) ...<Widget>[
-                                _billRow(context, store, shown[i], now),
+                                HighlightRow(
+                                  highlighted:
+                                      shown[i].id == widget.highlightId,
+                                  child: _billRow(
+                                      context, store, shown[i], now),
+                                ),
                                 if (i != shown.length - 1)
                                   Divider(height: 1, color: context.hairline),
                               ],
@@ -208,6 +238,7 @@ class _BillsScreenState extends State<BillsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_bills',
         backgroundColor: AppColors.bills,
         tooltip: 'Add bill',
         onPressed: () => AddBillSheet.show(context),

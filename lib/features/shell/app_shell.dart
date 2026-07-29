@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/entity_navigator.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/alarm.dart';
+import '../../data/models/entity_ref.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/reminder.dart';
 import '../../data/stores/alarm_store.dart';
 import '../../data/stores/commitments_store.dart';
 import '../../data/stores/reminder_store.dart';
 import '../../data/stores/settings_store.dart';
-import '../memberships/membership_detail_screen.dart';
 import '../reminders/ringing_screen.dart';
 import '../bills/bills_screen.dart';
 import '../clock/clock_screen.dart';
@@ -95,7 +96,7 @@ class _AppShellState extends State<AppShell> {
             ),
           );
         } else {
-          setState(() => _index = 1);
+          EntityNavigator.open(context, EntityRef(EntityType.reminder, r.id));
         }
       case 'alarm':
         final Alarm? a = context.read<AlarmStore>().byId(route.id);
@@ -119,21 +120,18 @@ class _AppShellState extends State<AppShell> {
           ),
         );
       case 'habit':
+        EntityNavigator.open(context, EntityRef(EntityType.habit, route.id));
       case 'event':
-        setState(() => _index = 2);
+        EntityNavigator.open(
+            context, EntityRef(EntityType.plannerEvent, route.id));
       case 'bill':
-        Navigator.push(context,
-            MaterialPageRoute<void>(builder: (_) => const BillsScreen()));
+        EntityNavigator.open(context, EntityRef(EntityType.bill, route.id));
       case 'membership':
-        Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-                builder: (_) => MembershipDetailScreen(id: route.id)));
+        EntityNavigator.open(
+            context, EntityRef(EntityType.membership, route.id));
       case 'document':
-        Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-                builder: (_) => const DocumentVaultScreen()));
+        EntityNavigator.open(
+            context, EntityRef(EntityType.storedDocument, route.id));
     }
   }
 

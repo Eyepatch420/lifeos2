@@ -9,7 +9,7 @@ import 'persistence.dart';
 /// not here — it is transient UI state, not app data.
 class AlarmStore extends ChangeNotifier {
   AlarmStore() {
-    if (!_load()) _seed();
+    _load();
   }
 
   static const String _key = 'alarms';
@@ -108,7 +108,7 @@ class AlarmStore extends ChangeNotifier {
         forceConfirmIntervalMinutes: a.forceConfirmIntervalMinutes,
       );
 
-  void _seed() {
+  void seed() {
     _alarms.addAll(<Alarm>[
       Alarm(
         id: IdGen.next('alm'),

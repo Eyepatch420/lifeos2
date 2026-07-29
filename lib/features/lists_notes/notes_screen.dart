@@ -128,6 +128,7 @@ class _NotesScreenState extends State<NotesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_notes',
         backgroundColor: AppColors.notes,
         tooltip: 'New note',
         onPressed: () => _openEditor(context),

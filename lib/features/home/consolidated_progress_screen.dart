@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/services/score_engine.dart';
 import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -9,40 +10,57 @@ import '../../core/widgets/common.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/habit.dart';
 import '../../data/models/expense.dart';
+import '../../data/stores/commitments_store.dart';
 import '../../data/stores/expense_store.dart';
 import '../../data/stores/health_store.dart';
+import '../../data/stores/lists_notes_store.dart';
 import '../../data/stores/planner_store.dart';
 import '../../data/stores/progress_store.dart';
 import '../../data/stores/reminder_store.dart';
 import 'habit_streak_detail_screen.dart';
 
-/// One module's contribution to the composite wellness score.
-class _ModuleHealth {
-  const _ModuleHealth(
-      this.label, this.icon, this.color, this.value, this.weight,
-      {this.hasData = true});
+/// One module's contribution to the composite wellness score, rendered.
+///
+/// Wraps a [ScoreProvider] with the icon/color the UI needs — the score math
+/// itself lives entirely in [ScoreEngine], not here.
+class _ModuleHealth implements ScoreProvider {
+  const _ModuleHealth(this.label, this.icon, this.color, this.value,
+      this.weight, {this.hasData = true});
+  @override
   final String label;
+  @override
   final IconData icon;
+  @override
   final Color color;
 
   /// 0..1 adherence.
+  @override
   final double value;
 
   /// PRD 1.3 FR1 — weights are configurable, not baked into one formula.
+  @override
   final double weight;
+  @override
   final bool hasData;
+
+  @override
+  String get moduleKey => label;
 }
 
 /// PRD 1.3 — cross-module wellness score and all streaks at a glance.
 class ConsolidatedProgressScreen extends StatelessWidget {
   const ConsolidatedProgressScreen({super.key});
 
-  /// Tunable weights for the composite score.
+  /// Tunable weights for the composite score. Reminders/Planner/Budget/Health
+  /// keep their original weight; Bills/Memberships and Lists are new and
+  /// carry a smaller weight so the existing four stay dominant.
   static const Map<String, double> weights = <String, double>{
-    'Reminders': 0.3,
-    'Planner habits': 0.3,
-    'Budget adherence': 0.2,
-    'Health tracking': 0.2,
+    'Reminders': 0.25,
+    'Planner habits': 0.25,
+    'Budget adherence': 0.17,
+    'Health tracking': 0.17,
+    'Bills & memberships': 0.08,
+    'Lists': 0.08,
   };
 
   @override
@@ -52,6 +70,8 @@ class ConsolidatedProgressScreen extends StatelessWidget {
     final PlannerStore planner = context.watch<PlannerStore>();
     final ExpenseStore expenses = context.watch<ExpenseStore>();
     final HealthStore health = context.watch<HealthStore>();
+    final CommitmentsStore commitments = context.watch<CommitmentsStore>();
+    final ListsNotesStore listsNotes = context.watch<ListsNotesStore>();
 
     final int due = reminders.dueCount(now);
     final int done = reminders.doneCount(now);
@@ -90,21 +110,31 @@ class ConsolidatedProgressScreen extends StatelessWidget {
         weights['Health tracking']!,
         hasData: health.wellnessEntries.isNotEmpty,
       ),
+      _ModuleHealth(
+        'Bills & memberships',
+        Icons.receipt_long_outlined,
+        AppColors.danger,
+        (commitments.paymentAdherence(now) + commitments.renewalAdherence) / 2,
+        weights['Bills & memberships']!,
+        hasData: commitments.hasBillsTracked || commitments.hasRenewalHistory,
+      ),
+      _ModuleHealth(
+        'Lists',
+        Icons.checklist_outlined,
+        AppColors.progress,
+        listsNotes.checklistCompletionRate,
+        weights['Lists']!,
+        hasData: listsNotes.hasChecklistItems,
+      ),
     ];
 
     // Score is a weighted composite over modules that actually have data —
     // a module with no data must not silently drag the score to 0 (AC2).
+    // Formula lives in ScoreEngine so it's testable independent of this widget.
+    final ScoreResult result = ScoreEngine.compute(modules);
+    final int score = result.score;
     final List<_ModuleHealth> withData =
         modules.where((_ModuleHealth m) => m.hasData).toList();
-    final double totalWeight =
-        withData.fold<double>(0, (double s, _ModuleHealth m) => s + m.weight);
-    final int score = totalWeight == 0
-        ? 0
-        : (withData.fold<double>(
-                    0, (double s, _ModuleHealth m) => s + m.value * m.weight) /
-                totalWeight *
-                100)
-            .round();
 
     // PRD 1.3 AC3 — delta against a real recorded snapshot. Recomputing the
     // current numbers with a past date (the old approach) just reproduced
@@ -115,7 +145,7 @@ class ConsolidatedProgressScreen extends StatelessWidget {
 
     // Record this month so next month has something honest to compare with.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      progress.record(now, score);
+      progress.record(now, score, result.moduleValues);
     });
 
     return Scaffold(

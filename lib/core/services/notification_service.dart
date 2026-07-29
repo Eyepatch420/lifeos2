@@ -19,7 +19,8 @@ import '../../data/stores/settings_store.dart';
 /// shell to deep-link when a notification is tapped.
 class NotificationRoute {
   const NotificationRoute(this.kind, this.id);
-  final String kind; // reminder | habit | event | alarm | bill | membership | document
+  final String
+      kind; // reminder | habit | event | alarm | bill | membership | document
   final String id;
 }
 
@@ -83,7 +84,8 @@ class NotificationService {
     autoCancel: false,
     ongoing: true,
     actions: <AndroidNotificationAction>[
-      AndroidNotificationAction('confirm', 'Confirm', showsUserInterface: false),
+      AndroidNotificationAction('confirm', 'Confirm',
+          showsUserInterface: false),
     ],
   );
 
@@ -184,15 +186,50 @@ class NotificationService {
     }
   }
 
-  /// Stable int id per logical slot. Bit 30 kept clear; slot spreads
-  /// multiple occurrences of the same source (weekday, repeat index).
-  static int _id(String source, int slot) =>
-      (source.hashCode & 0x03FFFFFF) | (slot << 26);
+  /// Type-prefix namespaces already used when building `source` strings
+  /// elsewhere in this file (`hab_`, `alm_`, `bill_`, `mem_`, `doc_`, `fc_`,
+  /// `now_`; a bare reminder/event id has no prefix). Ordered so a longer
+  /// prefix is checked before a shorter one that could also match.
+  static const List<String> _prefixes = <String>[
+    'hab_',
+    'alm_',
+    'bill_',
+    'mem_',
+    'doc_',
+    'fc_',
+    'now_',
+  ];
+
+  /// Stable int id per logical slot.
+  ///
+  /// Layout (32-bit int, Android notification ids are `int`): bits 0-20 hold
+  /// a hash of [source] (21 bits — the id-after-prefix-stripping, so two
+  /// different entities of the SAME type can still collide at 1/2M odds, same
+  /// as before), bits 21-24 hold a 4-bit tag for which [_prefixes] entry (or
+  /// "none") matched, and bits 25-30 hold [slot]. Namespacing by type tag
+  /// means a reminder and a bill can never collide just because their ids
+  /// happened to hash the same — the tag differs, so the ids differ.
+  static int _id(String source, int slot) {
+    int tag = _prefixes.length; // "no prefix" tag
+    String rest = source;
+    for (int i = 0; i < _prefixes.length; i++) {
+      if (source.startsWith(_prefixes[i])) {
+        tag = i;
+        rest = source.substring(_prefixes[i].length);
+        break;
+      }
+    }
+    final int hash = rest.hashCode & 0x1FFFFF; // 21 bits
+    return hash | (tag << 21) | ((slot & 0x3F) << 25);
+  }
+
+  @visibleForTesting
+  static int idForTest(String source, int slot) => _id(source, slot);
 
   static tz.TZDateTime _nextInstance(TimeOfDay t, {int? weekday}) {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime d = tz.TZDateTime(
-        tz.local, now.year, now.month, now.day, t.hour, t.minute);
+    tz.TZDateTime d =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, t.hour, t.minute);
     while (d.isBefore(now) || (weekday != null && d.weekday != weekday)) {
       d = d.add(const Duration(days: 1));
     }
@@ -290,8 +327,8 @@ class NotificationService {
 
       switch (r.repeat) {
         case RepeatPattern.daily:
-          await _zoned(_id(r.id, 0), r.title, body, _nextInstance(r.time),
-              details,
+          await _zoned(
+              _id(r.id, 0), r.title, body, _nextInstance(r.time), details,
               repeat: DateTimeComponents.time, payload: payload, exact: exact);
         case RepeatPattern.specificDays:
           for (final int wd in r.specificDays) {
@@ -302,12 +339,8 @@ class NotificationService {
                 exact: exact);
           }
         case RepeatPattern.weekly:
-          await _zoned(
-              _id(r.id, 0),
-              r.title,
-              body,
-              _nextInstance(r.time, weekday: DateTime.monday),
-              details,
+          await _zoned(_id(r.id, 0), r.title, body,
+              _nextInstance(r.time, weekday: DateTime.monday), details,
               repeat: DateTimeComponents.dayOfWeekAndTime,
               payload: payload,
               exact: exact);
@@ -315,8 +348,8 @@ class NotificationService {
           tz.TZDateTime d = tz.TZDateTime(
               tz.local, now.year, now.month, 1, r.time.hour, r.time.minute);
           if (d.isBefore(now)) {
-            d = tz.TZDateTime(tz.local, now.year, now.month + 1, 1,
-                r.time.hour, r.time.minute);
+            d = tz.TZDateTime(tz.local, now.year, now.month + 1, 1, r.time.hour,
+                r.time.minute);
           }
           await _zoned(_id(r.id, 0), r.title, body, d, details,
               repeat: DateTimeComponents.dayOfMonthAndTime,
@@ -335,8 +368,8 @@ class NotificationService {
               h += step, slot++) {
             final TimeOfDay t = TimeOfDay(hour: h, minute: r.time.minute);
             if (_suppressed(settings, r.alertType, t)) continue;
-            await _zoned(_id(r.id, slot), r.title, body, _nextInstance(t),
-                details,
+            await _zoned(
+                _id(r.id, slot), r.title, body, _nextInstance(t), details,
                 repeat: DateTimeComponents.time,
                 payload: payload,
                 exact: exact);
@@ -367,8 +400,8 @@ class NotificationService {
               _nextInstance(t, weekday: wd), details,
               repeat: DateTimeComponents.dayOfWeekAndTime, payload: payload);
         case RepeatPattern.monthly:
-          tz.TZDateTime d = tz.TZDateTime(
-              tz.local, now.year, now.month, 1, t.hour, t.minute);
+          tz.TZDateTime d =
+              tz.TZDateTime(tz.local, now.year, now.month, 1, t.hour, t.minute);
           final int target = h.startedOn?.day ?? 1;
           final int lastDay = DateTime(d.year, d.month + 1, 0).day;
           d = tz.TZDateTime(tz.local, d.year, d.month,
@@ -383,8 +416,8 @@ class NotificationService {
               repeat: DateTimeComponents.dayOfMonthAndTime, payload: payload);
         case RepeatPattern.daily:
         case RepeatPattern.everyXHours:
-          await _zoned(_id('hab_${h.id}', 0), h.name, body, _nextInstance(t),
-              details,
+          await _zoned(
+              _id('hab_${h.id}', 0), h.name, body, _nextInstance(t), details,
               repeat: DateTimeComponents.time, payload: payload);
         case RepeatPattern.sos:
           break; // On-demand only, never scheduled.
