@@ -313,7 +313,7 @@ class NotificationService {
       final NotificationDetails details =
           _detailsFor(r.alertType, style: r.notifStyle);
       final String body =
-          r.subtitle.isEmpty ? 'Reminder from LifeOS' : r.subtitle;
+          r.subtitle.isEmpty ? 'Reminder from DigiLife' : r.subtitle;
       final String payload = 'reminder:${r.id}';
 
       // A snoozed reminder fires once at the snooze target instead.

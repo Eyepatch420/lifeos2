@@ -6,14 +6,14 @@ import 'data/stores/settings_store.dart';
 import 'features/shell/app_shell.dart';
 import 'features/shell/lock_gate.dart';
 
-class LifeOSApp extends StatelessWidget {
-  const LifeOSApp({super.key});
+class DigiLifeApp extends StatelessWidget {
+  const DigiLifeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final SettingsStore settings = context.watch<SettingsStore>();
     return MaterialApp(
-      title: 'LifeOS',
+      title: 'DigiLife',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

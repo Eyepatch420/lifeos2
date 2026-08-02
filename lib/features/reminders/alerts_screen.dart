@@ -14,7 +14,7 @@ import '../bills/bills_screen.dart';
 import '../documents/document_vault_screen.dart';
 import '../memberships/membership_detail_screen.dart';
 
-/// PRD 2.5 — every alert LifeOS would raise, rendered exactly as it appears on
+/// PRD 2.5 — every alert DigiLife would raise, rendered exactly as it appears on
 /// the lock screen: two contextual actions per alert (never a generic "OK"),
 /// and tapping the body deep-links to the specific item (AC2).
 class AlertsScreen extends StatelessWidget {
@@ -60,7 +60,7 @@ class AlertsScreen extends StatelessWidget {
                   tone: ChipTone.neutral,
                   icon: Icons.lock_outline,
                   text:
-                      'These are the alerts LifeOS raises on your lock screen. '
+                      'These are the alerts DigiLife raises on your lock screen. '
                       'Actions here work without opening the app.',
                 ),
                 const SizedBox(height: 12),
@@ -241,7 +241,7 @@ class _AlertCard extends StatelessWidget {
                 const SizedBox(width: 9),
                 Expanded(
                   child: Text(
-                    'LifeOS · $source',
+                    'DigiLife · $source',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

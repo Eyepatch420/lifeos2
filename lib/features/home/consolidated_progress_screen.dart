@@ -211,9 +211,9 @@ class ConsolidatedProgressScreen extends StatelessWidget {
                     tooltip: 'Share summary',
                     icon: const Icon(Icons.ios_share, color: Colors.white),
                     onPressed: () => ShareService.shareText(
-                      'LifeOS wellness score: $score/100 '
+                      'DigiLife wellness score: $score/100 '
                       'for ${fmtMonthYear.format(now)}',
-                      subject: 'My LifeOS progress',
+                      subject: 'My DigiLife progress',
                     ),
                   ),
                 ],

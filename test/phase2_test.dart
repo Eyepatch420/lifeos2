@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/data/models/enums.dart';
-import 'package:lifeos/data/models/habit.dart';
-import 'package:lifeos/data/models/reminder.dart';
-import 'package:lifeos/data/stores/persistence.dart';
-import 'package:lifeos/data/stores/reminder_store.dart';
+import 'package:digilife/data/models/enums.dart';
+import 'package:digilife/data/models/habit.dart';
+import 'package:digilife/data/models/reminder.dart';
+import 'package:digilife/data/stores/persistence.dart';
+import 'package:digilife/data/stores/reminder_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

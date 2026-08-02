@@ -861,10 +861,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Navigator.pop(ctx);
               // Writes a real file and hands it to the system share sheet.
               final String name =
-                  'lifeos-expenses-${fmtMonthKey.format(store.selectedMonth)}.csv';
+                  'digilife-expenses-${fmtMonthKey.format(store.selectedMonth)}.csv';
               try {
                 await ShareService.shareAsFile(csv, name,
-                    subject: 'LifeOS expenses');
+                    subject: 'DigiLife expenses');
               } catch (e) {
                 if (context.mounted) {
                   showSnack(context, 'Could not export: $e');

@@ -1,4 +1,4 @@
-# LifeOS — Flutter app
+# DigiLife — Flutter app
 
 A private, on-device daily-utility app: reminders, planner, expenses, health,
 notes & lists, memberships, bills and a document vault.

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/core/services/score_engine.dart';
-import 'package:lifeos/data/stores/persistence.dart';
-import 'package:lifeos/data/stores/progress_store.dart';
+import 'package:digilife/core/services/score_engine.dart';
+import 'package:digilife/data/stores/persistence.dart';
+import 'package:digilife/data/stores/progress_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeProvider implements ScoreProvider {

@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/core/services/backup_service.dart';
-import 'package:lifeos/data/models/commitments.dart';
-import 'package:lifeos/data/models/enums.dart';
-import 'package:lifeos/data/stores/commitments_store.dart';
-import 'package:lifeos/data/stores/persistence.dart';
+import 'package:digilife/core/services/backup_service.dart';
+import 'package:digilife/data/models/commitments.dart';
+import 'package:digilife/data/models/enums.dart';
+import 'package:digilife/data/stores/commitments_store.dart';
+import 'package:digilife/data/stores/persistence.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

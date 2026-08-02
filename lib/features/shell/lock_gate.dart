@@ -51,7 +51,7 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
     if (!context.read<SettingsStore>().appLockEnabled) return;
     _prompting = true;
     final bool ok =
-        await AuthService.authenticate('Unlock LifeOS to view your data');
+        await AuthService.authenticate('Unlock DigiLife to view your data');
     _prompting = false;
     if (!mounted) return;
     if (ok) setState(() => _unlocked = true);
@@ -72,7 +72,7 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
             const Icon(Icons.lock_outline, size: 56, color: Colors.white),
             const SizedBox(height: 16),
             const Text(
-              'LifeOS is locked',
+              'DigiLife is locked',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

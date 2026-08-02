@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/data/stores/migration_runner.dart';
+import 'package:digilife/data/stores/migration_runner.dart';
 
 void main() {
   setUp(() => MigrationRunner.clearForTest());

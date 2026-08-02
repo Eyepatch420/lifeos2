@@ -1,5 +1,5 @@
-name: lifeos
-description: LifeOS - a private, on-device daily utility app (reminders, planner, expenses, health, notes, memberships, bills, documents).
+name: digilife
+description: DigiLife - a private, on-device daily utility app (reminders, planner, expenses, health, notes, memberships, bills, documents).
 publish_to: 'none'
 version: 1.0.0+1
 

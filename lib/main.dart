@@ -75,7 +75,7 @@ Future<void> main() async {
         ChangeNotifierProvider<ListsNotesStore>.value(value: listsNotesStore),
         ChangeNotifierProvider<ProgressStore>.value(value: progressStore),
       ],
-      child: const LifeOSApp(),
+      child: const DigiLifeApp(),
     ),
   );
 }

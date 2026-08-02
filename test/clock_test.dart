@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lifeos/data/models/alarm.dart';
-import 'package:lifeos/data/stores/alarm_store.dart';
+import 'package:digilife/data/models/alarm.dart';
+import 'package:digilife/data/stores/alarm_store.dart';
 
 void main() {
   // Monday 27 July 2026, 08:00.

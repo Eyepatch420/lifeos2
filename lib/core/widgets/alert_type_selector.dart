@@ -143,9 +143,9 @@ class AlertTypeSelector extends StatelessWidget {
                   text: _forceConfirmFullySupported
                       ? 'This will override Do Not Disturb. Make sure notification '
                           'permission is set to "Allow always" and battery '
-                          'optimisation is disabled for LifeOS.'
+                          'optimisation is disabled for DigiLife.'
                       : 'On this platform the system does not allow a fully '
-                          'un-dismissable alarm. LifeOS will use the most '
+                          'un-dismissable alarm. DigiLife will use the most '
                           'insistent alert available (time-sensitive, repeating), '
                           'but it can still be dismissed from the lock screen.',
                 ),
