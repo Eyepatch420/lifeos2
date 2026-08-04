@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:digilife/data/models/enums.dart';
-import 'package:digilife/data/models/reminder.dart';
-import 'package:digilife/data/stores/persistence.dart';
-import 'package:digilife/data/stores/reminder_store.dart';
+import 'package:digidaily/data/models/enums.dart';
+import 'package:digidaily/data/models/reminder.dart';
+import 'package:digidaily/data/stores/persistence.dart';
+import 'package:digidaily/data/stores/reminder_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

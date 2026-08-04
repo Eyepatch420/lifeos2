@@ -259,7 +259,7 @@ class HealthStore extends ChangeNotifier {
   String exportDoctorReport(DateTime now, {int days = 30}) {
     final DateTime from = dayKey(now.subtract(Duration(days: days)));
     final StringBuffer b = StringBuffer()
-      ..writeln('DigiLife wellness summary')
+      ..writeln('DigiDaily wellness summary')
       ..writeln('Period: ${fmtShortDate.format(from)} - ${fmtShortDate.format(now)}')
       ..writeln('')
       ..writeln('SYMPTOM & MOOD LOG');

@@ -6,14 +6,14 @@ import 'data/stores/settings_store.dart';
 import 'features/shell/app_shell.dart';
 import 'features/shell/lock_gate.dart';
 
-class DigiLifeApp extends StatelessWidget {
-  const DigiLifeApp({super.key});
+class DigiDailyApp extends StatelessWidget {
+  const DigiDailyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final SettingsStore settings = context.watch<SettingsStore>();
     return MaterialApp(
-      title: 'DigiLife',
+      title: 'DigiDaily',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

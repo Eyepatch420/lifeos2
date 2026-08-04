@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:digilife/core/services/ocr_service.dart';
-import 'package:digilife/data/models/enums.dart';
-import 'package:digilife/data/models/health.dart';
-import 'package:digilife/data/models/lists_notes.dart';
-import 'package:digilife/data/stores/health_store.dart';
-import 'package:digilife/data/stores/lists_notes_store.dart';
+import 'package:digidaily/core/services/ocr_service.dart';
+import 'package:digidaily/data/models/enums.dart';
+import 'package:digidaily/data/models/health.dart';
+import 'package:digidaily/data/models/lists_notes.dart';
+import 'package:digidaily/data/stores/health_store.dart';
+import 'package:digidaily/data/stores/lists_notes_store.dart';
 
 void main() {
   group('reference ranges classify scanned markers', () {

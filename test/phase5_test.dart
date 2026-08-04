@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:digilife/data/stores/persistence.dart';
-import 'package:digilife/data/stores/progress_store.dart';
+import 'package:digidaily/data/stores/persistence.dart';
+import 'package:digidaily/data/stores/progress_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

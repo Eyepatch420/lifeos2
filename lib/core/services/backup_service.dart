@@ -79,7 +79,7 @@ class BackupService {
       // the backup is still valid without it.
     }
     return const JsonEncoder.withIndent('  ').convert(<String, dynamic>{
-      'app': 'DigiLife',
+      'app': 'DigiDaily',
       'formatVersion': formatVersion,
       'appVersion': appVersion,
       'exportedAt': DateTime.now().toIso8601String(),
@@ -90,19 +90,21 @@ class BackupService {
   static String suggestedFileName() {
     final DateTime now = DateTime.now();
     String two(int v) => v.toString().padLeft(2, '0');
-    return 'digilife-backup-${now.year}-${two(now.month)}-${two(now.day)}.json';
+    return 'digidaily-backup-${now.year}-${two(now.month)}-${two(now.day)}.json';
   }
 
   /// Validates a parsed backup envelope's structure without writing anything.
   /// Returns an error message, or null if the envelope is well-formed enough
   /// to restore from.
   static String? _validate(Map<String, dynamic> parsed) {
-    if (parsed['app'] != 'DigiLife' && parsed['app'] != 'LifeOS') {
-      return "That file isn't a DigiLife backup.";
+    if (parsed['app'] != 'DigiDaily' &&
+        parsed['app'] != 'DigiLife' &&
+        parsed['app'] != 'LifeOS') {
+      return "That file isn't a DigiDaily backup.";
     }
     final int version = parsed['formatVersion'] as int? ?? 0;
     if (version > formatVersion) {
-      return 'That backup was made by a newer version of DigiLife.';
+      return 'That backup was made by a newer version of DigiDaily.';
     }
     final Object? data = parsed['data'];
     if (data is! Map<String, dynamic> || data.isEmpty) {

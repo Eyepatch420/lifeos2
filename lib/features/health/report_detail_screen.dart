@@ -476,7 +476,7 @@ class ReportDetailScreen extends StatelessWidget {
     }
     b
       ..writeln('')
-      ..writeln('Shared from DigiLife. Values are for reference only — '
+      ..writeln('Shared from DigiDaily. Values are for reference only — '
           'always confirm with your doctor.');
     return b.toString();
   }

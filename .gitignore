@@ -51,3 +51,11 @@ app.*.map.json
 
 # Claude Code artifacts
 .artifacts/
+
+# graphify knowledge graph output
+graphify-out/
+
+# Release signing (never commit — losing this blocks all future app updates)
+android/key.properties
+android/*.jks
+android/*.keystore

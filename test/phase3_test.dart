@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:digilife/core/services/ocr_service.dart';
-import 'package:digilife/data/models/enums.dart';
-import 'package:digilife/data/models/expense.dart';
-import 'package:digilife/data/stores/expense_store.dart';
+import 'package:digidaily/core/services/ocr_service.dart';
+import 'package:digidaily/data/models/enums.dart';
+import 'package:digidaily/data/models/expense.dart';
+import 'package:digidaily/data/stores/expense_store.dart';
 
 void main() {
   group('receipt OCR parsing', () {

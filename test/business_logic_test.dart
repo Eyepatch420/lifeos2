@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:digilife/core/utils/date_x.dart';
-import 'package:digilife/core/utils/streak_calculator.dart';
-import 'package:digilife/data/models/commitments.dart';
-import 'package:digilife/data/models/enums.dart';
-import 'package:digilife/data/models/expense.dart';
-import 'package:digilife/data/models/health.dart';
-import 'package:digilife/data/stores/expense_store.dart';
-import 'package:digilife/data/stores/reminder_store.dart';
+import 'package:digidaily/core/utils/date_x.dart';
+import 'package:digidaily/core/utils/streak_calculator.dart';
+import 'package:digidaily/data/models/commitments.dart';
+import 'package:digidaily/data/models/enums.dart';
+import 'package:digidaily/data/models/expense.dart';
+import 'package:digidaily/data/models/health.dart';
+import 'package:digidaily/data/stores/expense_store.dart';
+import 'package:digidaily/data/stores/reminder_store.dart';
 
 /// Tests target the acceptance criteria from the requirements document that
 /// are pure logic — the parts most likely to silently drift.

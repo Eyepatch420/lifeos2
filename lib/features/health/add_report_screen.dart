@@ -353,7 +353,7 @@ class _AddReportScreenState extends State<AddReportScreen> {
             tone: ChipTone.warning,
             icon: Icons.info_outline,
             title: 'Always verify with your doctor',
-            text: 'DigiLife shows values against common reference ranges. It '
+            text: 'DigiDaily shows values against common reference ranges. It '
                 'does not diagnose anything.',
           ),
         ],

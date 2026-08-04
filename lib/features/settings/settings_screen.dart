@@ -240,7 +240,7 @@ class SettingsScreen extends StatelessWidget {
                         title: 'Privacy policy',
                         subtitle: 'How your data is handled',
                         onTap: () => _openUrl(
-                            context, Uri.parse('https://digilife.app/privacy')),
+                            context, Uri.parse('https://digidaily.app/privacy')),
                       ),
                       Divider(height: 1, color: context.hairline),
                       _tile(
@@ -248,14 +248,14 @@ class SettingsScreen extends StatelessWidget {
                         icon: Icons.mail_outline,
                         color: AppColors.textSecondary,
                         title: 'Support',
-                        subtitle: 'support@digilife.app',
+                        subtitle: 'support@digidaily.app',
                         onTap: () => _openUrl(
                             context,
                             Uri(
                               scheme: 'mailto',
-                              path: 'support@digilife.app',
+                              path: 'support@digidaily.app',
                               queryParameters: <String, String>{
-                                'subject': 'DigiLife support',
+                                'subject': 'DigiDaily support',
                               },
                             )),
                       ),
@@ -687,7 +687,7 @@ class SettingsScreen extends StatelessWidget {
               final String path = await ShareService.shareAsFile(
                 await BackupService.buildBackup(),
                 BackupService.suggestedFileName(),
-                subject: 'DigiLife backup — $total records',
+                subject: 'DigiDaily backup — $total records',
               );
               if (context.mounted) {
                 showSnack(context, 'Saved to ${path.split('/').last}');
@@ -756,7 +756,7 @@ class SettingsScreen extends StatelessWidget {
       final String path = await ShareService.shareAsFile(
         await BackupService.buildBackup(),
         BackupService.suggestedFileName(),
-        subject: 'DigiLife backup',
+        subject: 'DigiDaily backup',
       );
       if (context.mounted) {
         showSnack(context, 'Backup saved as ${path.split('/').last}');
@@ -808,7 +808,7 @@ class SettingsScreen extends StatelessWidget {
       context,
       title: 'Restore from a backup?',
       message: mode == RestoreMode.overwrite
-          ? 'Everything currently in DigiLife on this device will be '
+          ? 'Everything currently in DigiDaily on this device will be '
               'replaced by the contents of the backup file. This cannot be undone.'
           : 'Records from the backup will be added to what\'s already on this '
               'device. Matching items (same id) will be overwritten by the backup.',
@@ -831,7 +831,7 @@ class SettingsScreen extends StatelessWidget {
         content: Text(
           '${result.sectionsRestored} section'
           '${result.sectionsRestored == 1 ? '' : 's'} restored. '
-          'Close and reopen DigiLife to see your restored data.',
+          'Close and reopen DigiDaily to see your restored data.',
           style: const TextStyle(fontSize: 13.5, height: 1.5),
         ),
         actions: <Widget>[

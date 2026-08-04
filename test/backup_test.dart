@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:digilife/core/services/backup_service.dart';
+import 'package:digidaily/core/services/backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:digilife/data/stores/persistence.dart';
-import 'package:digilife/data/stores/settings_store.dart';
-import 'package:digilife/data/stores/reminder_store.dart';
-import 'package:digilife/data/stores/planner_store.dart';
-import 'package:digilife/data/stores/alarm_store.dart';
-import 'package:digilife/data/stores/expense_store.dart';
-import 'package:digilife/data/stores/health_store.dart';
-import 'package:digilife/data/stores/commitments_store.dart';
-import 'package:digilife/data/stores/lists_notes_store.dart';
+import 'package:digidaily/data/stores/persistence.dart';
+import 'package:digidaily/data/stores/settings_store.dart';
+import 'package:digidaily/data/stores/reminder_store.dart';
+import 'package:digidaily/data/stores/planner_store.dart';
+import 'package:digidaily/data/stores/alarm_store.dart';
+import 'package:digidaily/data/stores/expense_store.dart';
+import 'package:digidaily/data/stores/health_store.dart';
+import 'package:digidaily/data/stores/commitments_store.dart';
+import 'package:digidaily/data/stores/lists_notes_store.dart';
 import 'dart:convert';
 
 void main() {
@@ -45,7 +45,7 @@ void main() {
     ]) {
       expect(data.containsKey(key), isTrue, reason: '$key missing from backup');
     }
-    expect(parsed['app'], 'DigiLife');
+    expect(parsed['app'], 'DigiDaily');
     expect(parsed['formatVersion'], BackupService.formatVersion);
     expect(parsed.containsKey('appVersion'), isTrue);
   });

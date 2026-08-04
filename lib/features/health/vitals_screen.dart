@@ -347,7 +347,7 @@ class VitalsScreen extends StatelessWidget {
                   // The summary was previously generated and then discarded.
                   await ShareService.shareAsFile(
                     text,
-                    'digilife-health-summary-${selected}d.txt',
+                    'digidaily-health-summary-${selected}d.txt',
                     subject: 'Health summary — last $selected days',
                   );
                 },

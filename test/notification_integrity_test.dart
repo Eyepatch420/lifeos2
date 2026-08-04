@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:digilife/core/services/notification_service.dart';
+import 'package:digidaily/core/services/notification_service.dart';
 
 void main() {
   test('a reminder id and a bill id that hash the same no longer collide', () {
