@@ -239,8 +239,8 @@ class SettingsScreen extends StatelessWidget {
                         color: AppColors.textSecondary,
                         title: 'Privacy policy',
                         subtitle: 'How your data is handled',
-                        onTap: () => _openUrl(
-                            context, Uri.parse('https://digidaily.app/privacy')),
+                        onTap: () => _openUrl(context,
+                            Uri.parse('https://docs-alpha-gold.vercel.app')),
                       ),
                       Divider(height: 1, color: context.hairline),
                       _tile(
@@ -248,12 +248,12 @@ class SettingsScreen extends StatelessWidget {
                         icon: Icons.mail_outline,
                         color: AppColors.textSecondary,
                         title: 'Support',
-                        subtitle: 'support@digidaily.app',
+                        subtitle: 'info@igurus.in',
                         onTap: () => _openUrl(
                             context,
                             Uri(
                               scheme: 'mailto',
-                              path: 'support@digidaily.app',
+                              path: 'info@igurus.in',
                               queryParameters: <String, String>{
                                 'subject': 'DigiDaily support',
                               },
