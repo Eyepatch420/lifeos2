@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/services/backup_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/services/share_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -20,8 +21,26 @@ import '../../data/stores/reminder_store.dart';
 import '../../data/stores/settings_store.dart';
 
 /// PRD 10.1 — profile, shared defaults, privacy and appearance.
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _notifsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final bool ok = await NotificationService.hasNotificationPermission();
+    if (mounted) setState(() => _notifsEnabled = ok);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,20 +87,26 @@ class SettingsScreen extends StatelessWidget {
                         onTap: () => _pickSnooze(context, s),
                       ),
                       Divider(height: 1, color: context.hairline),
-                      SwitchListTile(
-                        value: s.weeklyDigestEnabled,
-                        activeThumbColor: AppColors.checkGreen,
-                        secondary: const IconTile(
-                            icon: Icons.summarize_outlined,
-                            color: AppColors.info),
-                        title: const Text('Weekly insights digest',
-                            style: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w600)),
-                        subtitle: const Text(
-                          'Sunday summary of streaks, budget and renewals',
-                          style: TextStyle(fontSize: 12),
+                      Opacity(
+                        opacity: _notifsEnabled ? 1.0 : 0.6,
+                        child: SwitchListTile(
+                          value: s.weeklyDigestEnabled && _notifsEnabled,
+                          activeThumbColor: AppColors.checkGreen,
+                          secondary: const IconTile(
+                              icon: Icons.summarize_outlined,
+                              color: AppColors.info),
+                          title: const Text('Weekly insights digest',
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w600)),
+                          subtitle: Text(
+                            _notifsEnabled
+                                ? 'Sunday summary of streaks, budget and renewals'
+                                : 'Notification permission is required to enable this.',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onChanged:
+                              _notifsEnabled ? s.setWeeklyDigest : null,
                         ),
-                        onChanged: s.setWeeklyDigest,
                       ),
                     ],
                   ),

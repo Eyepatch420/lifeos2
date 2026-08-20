@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/alert_type_selector.dart';
 import '../../core/widgets/common.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/services/attachment_service.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/expense.dart';
@@ -40,6 +41,7 @@ class AddReminderSheet extends StatefulWidget {
 
 class _AddReminderSheetState extends State<AddReminderSheet> {
   late ReminderType _type;
+  bool _notifsEnabled = true;
 
   // Shared
   final TextEditingController _title = TextEditingController();
@@ -75,6 +77,7 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
   @override
   void initState() {
     super.initState();
+    _checkPermission();
     final Reminder? e = widget.existing;
     _type = e?.type ?? widget.initialType ?? ReminderType.medicine;
     _alert = e?.alertType ??
@@ -102,6 +105,11 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
       _untilHour = w.untilHour;
       _perReminderMl = w.amountPerReminderMl;
     }
+  }
+
+  Future<void> _checkPermission() async {
+    final bool ok = await NotificationService.hasNotificationPermission();
+    if (mounted) setState(() => _notifsEnabled = ok);
   }
 
   @override
@@ -698,16 +706,21 @@ class _AddReminderSheetState extends State<AddReminderSheet> {
   Widget _notifStyleField() {
     return FieldWrap(
       label: 'Notification style',
-      child: Wrap(
-        spacing: 6,
-        children: <Widget>[
-          for (final String s in <String>['Sound', 'Vibrate', 'Silent'])
-            ChoicePill(
-              label: s,
-              selected: _notifStyle == s,
-              onTap: () => setState(() => _notifStyle = s),
-            ),
-        ],
+      child: Opacity(
+        opacity: _notifsEnabled ? 1.0 : 0.6,
+        child: Wrap(
+          spacing: 6,
+          children: <Widget>[
+            for (final String s in <String>['Sound', 'Vibrate', 'Silent'])
+              ChoicePill(
+                label: s,
+                selected: _notifStyle == s,
+                onTap: () {
+                  if (_notifsEnabled) setState(() => _notifStyle = s);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }

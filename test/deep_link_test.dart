@@ -38,8 +38,8 @@ void main() {
         ChangeNotifierProvider<CommitmentsStore>.value(value: commitments),
         ChangeNotifierProvider<ExpenseStore>.value(value: ExpenseStore()),
       ],
-      child: MaterialApp(
-        home: const BillsScreen(highlightId: 'bill_highlight_target'),
+      child: const MaterialApp(
+        home: BillsScreen(highlightId: 'bill_highlight_target'),
       ),
     ));
     await tester.pumpAndSettle();
@@ -63,8 +63,8 @@ void main() {
       providers: <SingleChildWidget>[
         ChangeNotifierProvider<ReminderStore>.value(value: reminders),
       ],
-      child: MaterialApp(
-        home: const RemindersScreen(highlightId: 'rem_highlight_target'),
+      child: const MaterialApp(
+        home: RemindersScreen(highlightId: 'rem_highlight_target'),
       ),
     ));
     await tester.pumpAndSettle();
@@ -90,7 +90,7 @@ void main() {
         ChangeNotifierProvider<CommitmentsStore>.value(value: commitments),
         ChangeNotifierProvider<ExpenseStore>.value(value: ExpenseStore()),
       ],
-      child: MaterialApp(home: const BillsScreen()),
+      child: const MaterialApp(home: BillsScreen()),
     ));
     await tester.pumpAndSettle();
 

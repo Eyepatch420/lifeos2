@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_x.dart';
 import '../../core/widgets/alert_type_selector.dart';
 import '../../core/widgets/common.dart';
+import '../../core/services/notification_service.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/habit.dart';
 import '../../data/stores/id_gen.dart';
@@ -54,6 +55,7 @@ class AddPlannerItemSheet extends StatefulWidget {
 
 class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
   late PlannerItemType _type;
+  bool _notifsEnabled = true;
   final TextEditingController _title = TextEditingController();
   final TextEditingController _location = TextEditingController();
   final TextEditingController _note = TextEditingController();
@@ -81,6 +83,7 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
   @override
   void initState() {
     super.initState();
+    _checkPermission();
     _type = widget.existingHabit != null
         ? PlannerItemType.habit
         : widget.existingEvent?.type ??
@@ -113,6 +116,11 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
       _reminderLeadMinutes = e.reminderLeadMinutes;
       _alert = e.alertType;
     }
+  }
+
+  Future<void> _checkPermission() async {
+    final bool ok = await NotificationService.hasNotificationPermission();
+    if (mounted) setState(() => _notifsEnabled = ok);
   }
 
   @override
@@ -310,19 +318,24 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
           Expanded(
             child: FieldWrap(
               label: 'Preferred time',
-              child: InkWell(
-                onTap: () async {
-                  final TimeOfDay? p = await showTimePicker(
-                      context: context, initialTime: _preferredTime);
-                  if (p != null && mounted) setState(() => _preferredTime = p);
-                },
-                child: InputDecorator(
-                  decoration: const InputDecoration(),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(child: Text(formatTimeOfDay(_preferredTime))),
-                      const Icon(Icons.expand_more, size: 18),
-                    ],
+              child: Opacity(
+                opacity: _notifsEnabled ? 1.0 : 0.6,
+                child: InkWell(
+                  onTap: _notifsEnabled ? () async {
+                    final TimeOfDay? p = await showTimePicker(
+                        context: context, initialTime: _preferredTime);
+                    if (p != null && mounted) setState(() => _preferredTime = p);
+                  } : null,
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      errorText: _notifsEnabled ? null : 'Permission missing',
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(child: Text(formatTimeOfDay(_preferredTime))),
+                        const Icon(Icons.expand_more, size: 18),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -449,22 +462,27 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
       ),
       FieldWrap(
         label: 'Remind me before',
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: <Widget>[
-            ChoicePill(
-              label: 'No reminder',
-              selected: _reminderLeadMinutes == null,
-              onTap: () => setState(() => _reminderLeadMinutes = null),
-            ),
-            for (final int m in <int>[10, 30, 60, 1440])
+        child: Opacity(
+          opacity: _notifsEnabled ? 1.0 : 0.6,
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: <Widget>[
               ChoicePill(
-                label: m == 1440 ? '1 day' : '$m min',
-                selected: _reminderLeadMinutes == m,
-                onTap: () => setState(() => _reminderLeadMinutes = m),
+                label: 'No reminder',
+                selected: _reminderLeadMinutes == null,
+                onTap: () => setState(() => _reminderLeadMinutes = null),
               ),
-          ],
+              for (final int m in <int>[10, 30, 60, 1440])
+                ChoicePill(
+                  label: m == 1440 ? '1 day' : '$m min',
+                  selected: _reminderLeadMinutes == m,
+                  onTap: () {
+                  if (_notifsEnabled) setState(() => _reminderLeadMinutes = m);
+                },
+                ),
+            ],
+          ),
         ),
       ),
       // The alert tier was previously hardcoded to Alarm for every event.
@@ -472,6 +490,14 @@ class _AddPlannerItemSheetState extends State<AddPlannerItemSheet> {
         AlertTypeSelector(
           value: _alert,
           onChanged: (AlertType t) => setState(() => _alert = t),
+        ),
+      if (_reminderLeadMinutes != null && !_notifsEnabled)
+        const Padding(
+          padding: EdgeInsets.only(top: 4, bottom: 8),
+          child: Text(
+            'Notification permission is required for reminders to fire.',
+            style: TextStyle(fontSize: 11, color: AppColors.dangerBright),
+          ),
         ),
     ];
   }

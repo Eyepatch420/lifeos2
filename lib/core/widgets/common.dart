@@ -597,17 +597,20 @@ class SheetScaffold extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: actionColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: actionColor,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: actionEnabled ? onAction : null,
+                    child: Text(actionLabel),
                   ),
-                  onPressed: actionEnabled ? onAction : null,
-                  child: Text(actionLabel),
                 ),
               ),
             ),

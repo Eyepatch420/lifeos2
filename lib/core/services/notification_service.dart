@@ -141,6 +141,24 @@ class NotificationService {
     _ready = true;
   }
 
+  /// PRD 10.1 — checks if the system has granted permission to post
+  /// notifications.
+  static Future<bool> hasNotificationPermission() async {
+    final AndroidFlutterLocalNotificationsPlugin? android =
+        _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    return await android?.areNotificationsEnabled() ?? false;
+  }
+
+  /// Checks if the system has granted permission to schedule exact alarms
+  /// (required for the Alarm and Force Confirm tiers on Android 13+).
+  static Future<bool> hasExactAlarmPermission() async {
+    final AndroidFlutterLocalNotificationsPlugin? android =
+        _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    return await android?.canScheduleExactNotifications() ?? false;
+  }
+
   /// Gives the service direct store access so notification action buttons can
   /// mark things done without the UI being alive.
   static void bindStores(ReminderStore reminders, AlarmStore alarms,
